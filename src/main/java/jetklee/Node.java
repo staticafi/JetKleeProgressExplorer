@@ -7,10 +7,12 @@ public class Node {
     public class ViewProps {
         int x = 0;
         int y = 0;
-        int startRound;
-        int endRound;
+        int subTreeMinX = 0;
+        int subTreeMaxX = 0;
     }
 
+    public int startRound;
+    public int endRound;
     public Node parent;
     public Node left;
     public Node right;
@@ -25,6 +27,7 @@ public class Node {
         stateID = stateID_;
         uniqueState = uniqueState_;
         constraints = constraints_;
+        endRound = 0;
 
         parent = null;
         left = null;

@@ -3,7 +3,6 @@ package jetklee;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
@@ -12,7 +11,7 @@ public class Tree {
     public Node root;
     public HashMap<Integer, Node> nodes;
     public List<String> rounds;
-    private int roundCounter;
+    public int roundCounter;
 
     public Tree() {
         root = null;
@@ -21,19 +20,31 @@ public class Tree {
         roundCounter = 0;
     }
 
-    public void loadFiles(String dir) throws Exception {
-        File[] files = new File(dir).listFiles();
-        if (files == null)
-            return;
+    public void loadFiles(Path dir) throws Exception {
+        List<Path> files = Files.list(dir)
+                .filter(Files::isRegularFile)
+                .filter(path -> path.getFileName().toString().endsWith(".json"))
+                .sorted(Comparator.comparingInt(this::pathToInt))
+                .toList();
 
-        for (File file : files) {
-            if (file.isFile() && file.getName().endsWith(".json")){
-                String fileName = file.getName();
-                loadFile(Paths.get(dir, fileName));
-                roundCounter++;
-                rounds.add(fileName);
+        for (Path file : files) {
+            loadFile(file);
+            roundCounter++;
+            rounds.add(file.getFileName().toString());
+        }
+
+        for (Node node : nodes.values()) {
+            if (node.endRound <= 0){
+                node.endRound = roundCounter;
             }
         }
+    }
+
+    private int pathToInt(final Path path) {
+        return Integer.parseInt(path.getFileName()
+                .toString()
+                .replace(".json", "")
+        );
     }
 
     private enum Action {
@@ -47,6 +58,7 @@ public class Tree {
                 default -> throw new Exception("Unknown action: " + actionStr);
             };
         }
+
     }
 
     private void loadFile(Path filePath) throws Exception {
@@ -91,7 +103,7 @@ public class Tree {
         }
 
         Node node = new Node(nodeID, stateID, uniqueState, constraints);
-        node.viewProps.startRound = roundCounter;
+        node.startRound = roundCounter;
         if (nodeID == 1) root = node;
         nodes.put(nodeID, node);
     }
@@ -114,7 +126,7 @@ public class Tree {
     private void EraseNode(JSONObject actionJSON) {
         int nodeID = actionJSON.getInt("nodeID");
         Node node = nodes.get(nodeID);
-        node.viewProps.endRound = roundCounter;
+        node.endRound = roundCounter;
     }
 
     private void dumpAction(String actionStr) {
@@ -134,7 +146,6 @@ public class Tree {
         while (!queue.isEmpty()) {
             Node node = queue.poll();
             System.out.print(node.id + "\n");
-            System.out.println("Start: " + node.viewProps.startRound + ", End: " + node.viewProps.endRound);
 
             if (node.left != null)
                 queue.add(node.left);
