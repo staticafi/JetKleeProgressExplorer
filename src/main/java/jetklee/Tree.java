@@ -21,20 +21,23 @@ public class Tree {
     }
 
     public void loadFiles(Path dir) throws Exception {
-        List<Path> files = Files.list(dir)
+        Files.list(dir)
                 .filter(Files::isRegularFile)
                 .filter(path -> path.getFileName().toString().endsWith(".json"))
                 .sorted(Comparator.comparingInt(this::pathToInt))
-                .toList();
+                .forEach(file -> {
+                    try {
+                        loadFile(file);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    roundCounter++;
+                    rounds.add(file.getFileName().toString());
+                });
 
-        for (Path file : files) {
-            loadFile(file);
-            roundCounter++;
-            rounds.add(file.getFileName().toString());
-        }
-
+        // set endRound for nodes without EraseNode action
         for (Node node : nodes.values()) {
-            if (node.endRound <= 0){
+            if (node.endRound == 0) {
                 node.endRound = roundCounter;
             }
         }
@@ -79,36 +82,30 @@ public class Tree {
 
             switch (action) {
                 case INSERT_NODE:
-                    InsertNode(actionJSON);
+                    Node node = insertNode(actionJSON);
+                    node.executionState = new ExecutionState(actionJSON);
                     break;
                 case INSERT_EDGE:
-                    InsertEdge(actionJSON);
+                    insertEdge(actionJSON);
                     break;
                 case ERASE_NODE:
-                    EraseNode(actionJSON);
+                    eraseNode(actionJSON);
                     break;
             }
         }
     }
 
-    private void InsertNode(JSONObject actionJSON) {
+    private Node insertNode(JSONObject actionJSON) {
         int nodeID = actionJSON.getInt("nodeID");
-        int stateID = actionJSON.getInt("stateID");
-        boolean uniqueState = actionJSON.getInt("uniqueState") == 1;
-        JSONArray constraintsJSON = actionJSON.getJSONArray("constraints");
-        ArrayList<String> constraints = new ArrayList<>();
 
-        for (int i = 0; i < constraintsJSON.length(); i++) {
-            constraints.add(constraintsJSON.get(i).toString());
-        }
-
-        Node node = new Node(nodeID, stateID, uniqueState, constraints);
+        Node node = new Node(nodeID);
         node.startRound = roundCounter;
         if (nodeID == 1) root = node;
         nodes.put(nodeID, node);
+        return node;
     }
 
-    private void InsertEdge(JSONObject actionJSON) {
+    private void insertEdge(JSONObject actionJSON) {
         int parentID = actionJSON.getInt("parentID");
         int childID = actionJSON.getInt("childID");
         int tag = actionJSON.getInt("tag");
@@ -123,7 +120,7 @@ public class Tree {
         child.parent = parent;
     }
 
-    private void EraseNode(JSONObject actionJSON) {
+    private void eraseNode(JSONObject actionJSON) {
         int nodeID = actionJSON.getInt("nodeID");
         Node node = nodes.get(nodeID);
         node.endRound = roundCounter;

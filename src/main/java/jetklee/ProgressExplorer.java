@@ -11,19 +11,25 @@ import java.awt.event.MouseWheelListener;
 import java.nio.file.Paths;
 
 public class ProgressExplorer implements ListSelectionListener, MouseWheelListener, MouseListener {
-    public static final int ARGS_COUNT = 1;
-    public Tree tree;
+    private static final int ARGS_COUNT = 1;
+    private Tree tree;
     private TreeViewer treeViewer;
     private JPanel rootPanel;
     private JList<String> roundsList;
+    private ConstraintsViewer constraintsViewer;
+    private MemoryViewer memoryViewer;
+    private ContextViewer contextViewer;
+    private int divider;
 
     public ProgressExplorer() {
         tree = new Tree();
         treeViewer = new TreeViewer(tree);
-
         rootPanel = new JPanel(new BorderLayout());
+        constraintsViewer = new ConstraintsViewer();
+        memoryViewer = new MemoryViewer();
+        contextViewer = new ContextViewer();
+        divider = 800;
 //        ListSelectionModel model = roundsList.getSelectionModel();
-
     }
 
     public void valueChanged(ListSelectionEvent e) {
@@ -32,6 +38,16 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         if (roundsList.getSelectedIndex() < 0) return;
         treeViewer.selectedRound = roundsList.getSelectedIndex();
         treeViewer.updateArea();
+    }
+
+    private void showNodeInformation(Node node) {
+        contextViewer.showContext(node.executionState);
+        constraintsViewer.showConstraints(node.executionState);
+        memoryViewer.showMemory(node.executionState);
+
+        constraintsViewer.textArea.setCaretPosition(0);
+        memoryViewer.textArea.setCaretPosition(0);
+        contextViewer.textArea.setCaretPosition(0);
     }
 
     public static void main(String[] args) {
@@ -81,17 +97,14 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
                 mainTabbedPane.addTab("C", sourceC);
                 mainTabbedPane.addTab("LL", sourceLL);
 
-                JPanel memory = new JPanel(new BorderLayout());
-                JPanel constraints = new JPanel(new BorderLayout());
-
                 JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-                tabbedPane.addTab("Memory", memory);
-                tabbedPane.addTab("Constraints", constraints);
+                tabbedPane.addTab("Context", explorer.contextViewer);
+                tabbedPane.addTab("Constraints", explorer.constraintsViewer);
+                tabbedPane.addTab("Memory", explorer.memoryViewer);
 
                 tabbedPane.setVisible(false);
-                tabbedPane.setPreferredSize(new Dimension(100, 100));
 
-                JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, mainTabbedPane, tabbedPane);
+                JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mainTabbedPane, tabbedPane);
 
                 JSplitPane mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, roundScrollPane, splitPane);
                 mainSplitPane.setDividerLocation(100);
@@ -100,9 +113,17 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
                 explorer.treeViewer.addMouseListener(new MouseListener() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        boolean nodeClicked = explorer.treeViewer.onMouseClicked(e.getX(), e.getY());
-                        tabbedPane.setVisible(nodeClicked);
-                        splitPane.setDividerLocation(650);
+                        Node node = explorer.treeViewer.onMouseClicked(e.getX(), e.getY());
+                        if (tabbedPane.isVisible())
+                            explorer.divider = splitPane.getDividerLocation();
+
+                        if (node != null){
+                            explorer.showNodeInformation(node);
+                            tabbedPane.setVisible(true);
+                            splitPane.setDividerLocation(explorer.divider);
+                        } else{
+                            tabbedPane.setVisible(false);
+                        }
                     }
 
                     @Override
@@ -127,7 +148,6 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
                 });
 
                 frame.setContentPane(explorer.rootPanel);
-
                 frame.pack();
                 frame.setVisible(true);
                 frame.setExtendedState(JFrame.MAXIMIZED_BOTH);

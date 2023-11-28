@@ -1,7 +1,4 @@
 package jetklee;
-
-import java.util.ArrayList;
-
 public class Node {
 
     public class ViewProps {
@@ -17,16 +14,11 @@ public class Node {
     public Node left;
     public Node right;
     public int id;
-    public int stateID;
-    public boolean uniqueState;
-    public ArrayList<String> constraints;
     ViewProps viewProps;
+    public ExecutionState executionState;
 
-    public Node(int id_, int stateID_, boolean uniqueState_, ArrayList<String> constraints_) {
+    public Node(int id_) {
         id = id_;
-        stateID = stateID_;
-        uniqueState = uniqueState_;
-        constraints = constraints_;
         endRound = 0;
 
         parent = null;
