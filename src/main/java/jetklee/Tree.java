@@ -20,7 +20,7 @@ public class Tree {
         roundCounter = 0;
     }
 
-    public void loadFiles(Path dir) throws Exception {
+    public void load(Path dir) throws Exception {
         Files.list(dir)
                 .filter(Files::isRegularFile)
                 .filter(path -> path.getFileName().toString().endsWith(".json"))
@@ -32,7 +32,7 @@ public class Tree {
                         throw new RuntimeException(e);
                     }
                     roundCounter++;
-                    rounds.add(file.getFileName().toString());
+                    rounds.add(file.getFileName().toString().replace(".json", ""));
                 });
 
         // set endRound for nodes without EraseNode action
@@ -150,4 +150,12 @@ public class Tree {
                 queue.add(node.right);
         }
     }
+
+    public void clear() {
+        root = null;
+        nodes = null;
+        rounds = null;
+        roundCounter = 0;
+    }
+
 }

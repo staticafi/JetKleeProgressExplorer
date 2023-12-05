@@ -23,7 +23,6 @@ public class TreeViewer extends JPanel {
     public static Color leftColor = Color.RED;
     public static Color rightColor = Color.BLUE;
     public static Color nodeColor = Color.BLACK;
-    private static final int clickRadius = 5;
 
     public TreeViewer(Tree tree_) {
         tree = tree_;
@@ -79,12 +78,8 @@ public class TreeViewer extends JPanel {
             int rectX = Math.round(zoom * (node.viewProps.x - nodeWidth / 2));
             int rectY = Math.round(zoom * (node.viewProps.y - nodeHeight / 2));
             boolean isInNode = (rectX <= clickX && clickX <= rectX + zoom * nodeWidth) && (rectY <= clickY && clickY <= rectY + zoom * nodeHeight);
-            if (isVisibleNode(node, selectedRound) && isInNode) {
-                System.out.println("Node " + node.id + " clicked.");
-                return node;
-            }
+            if (isVisibleNode(node, selectedRound) && isInNode) return node;
         }
-        System.out.println("Nothing clicked.");
         return null;
     }
 
@@ -170,7 +165,6 @@ public class TreeViewer extends JPanel {
     }
 
     private boolean isVisibleNode(Node node, int round) {
-//        return true;
         return node.startRound <= round && round < node.endRound;
     }
 
@@ -211,7 +205,6 @@ public class TreeViewer extends JPanel {
             drawChild(g2d, node.right);
         }
 
-//        System.out.println("Drawing: " + node.id);
         g2d.setColor(nodeColor);
         g2d.drawRect(
                 Math.round(zoom * (node.viewProps.x - nodeWidth / 2.0f)),
@@ -224,5 +217,11 @@ public class TreeViewer extends JPanel {
                 Math.round(zoom * (node.viewProps.x)),
                 Math.round(zoom * (node.viewProps.y))
         );
+    }
+
+    public void clear() {
+        selectedRound = 0;
+        revalidate();
+        repaint();
     }
 }

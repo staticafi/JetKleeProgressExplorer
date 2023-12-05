@@ -14,8 +14,18 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
     private static final int ARGS_COUNT = 1;
     private Tree tree;
     private TreeViewer treeViewer;
+    private SourceMapping sourceMapping;
+    private SourceViewerC sourceC;
+    private SourceViewerLL sourceLL;
     private JPanel rootPanel;
     private JList<String> roundsList;
+    private JTabbedPane mainTabbedPane;
+    private JTabbedPane leftTabbedPane;
+    private JSplitPane splitPane;
+    private JScrollPane roundScrollPane;
+    private JSplitPane mainSplitPane;
+    private JPanel treePanel;
+    private JScrollPane treeScrollPane;
     private ConstraintsViewer constraintsViewer;
     private MemoryViewer memoryViewer;
     private ContextViewer contextViewer;
@@ -24,12 +34,50 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
     public ProgressExplorer() {
         tree = new Tree();
         treeViewer = new TreeViewer(tree);
-        rootPanel = new JPanel(new BorderLayout());
+        treeViewer.addMouseListener(this);
+
+        sourceMapping = new SourceMapping();
+        sourceC = new SourceViewerC(sourceMapping);
+        sourceLL = new SourceViewerLL(sourceMapping);
+
         constraintsViewer = new ConstraintsViewer();
         memoryViewer = new MemoryViewer();
         contextViewer = new ContextViewer();
-        divider = 800;
-//        ListSelectionModel model = roundsList.getSelectionModel();
+        divider = 1000;
+
+        treeScrollPane = new JScrollPane(treeViewer);
+        treeScrollPane.setWheelScrollingEnabled(false);
+        treeScrollPane.addMouseWheelListener(new MouseWheelListener() {
+            @Override
+            public void mouseWheelMoved(MouseWheelEvent e) {
+                treeViewer.onZoomChanged(-e.getWheelRotation());
+            }
+        });
+        treePanel = new JPanel(new BorderLayout());
+        treePanel.add(treeScrollPane, BorderLayout.CENTER);
+
+        roundsList = new JList<>(new DefaultListModel<>());
+        roundsList.addListSelectionListener(this);
+        roundsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        roundScrollPane = new JScrollPane(roundsList);
+
+        mainTabbedPane = new JTabbedPane(JTabbedPane.TOP);
+        mainTabbedPane.addTab("Tree", treePanel);
+        mainTabbedPane.addTab("C", sourceC);
+        mainTabbedPane.addTab("LL", sourceLL);
+
+        leftTabbedPane = new JTabbedPane(JTabbedPane.TOP);
+        leftTabbedPane.addTab("Context", contextViewer);
+        leftTabbedPane.addTab("Constraints", constraintsViewer);
+        leftTabbedPane.addTab("Memory", memoryViewer);
+        leftTabbedPane.setVisible(false);
+
+        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mainTabbedPane, leftTabbedPane);
+        mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, roundScrollPane, splitPane);
+        mainSplitPane.setDividerLocation(50);
+
+        rootPanel = new JPanel(new BorderLayout());
+        rootPanel.add(mainSplitPane, BorderLayout.CENTER);
     }
 
     public void valueChanged(ListSelectionEvent e) {
@@ -40,14 +88,31 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         treeViewer.updateArea();
     }
 
-    private void showNodeInformation(Node node) {
-        contextViewer.showContext(node.executionState);
-        constraintsViewer.showConstraints(node.executionState);
-        memoryViewer.showMemory(node.executionState);
+    public void clear() {
+        sourceMapping.clear();
+        tree.clear();
+        ((DefaultListModel<String>)roundsList.getModel()).clear();
+        treeViewer.clear();
+        sourceC.clear();
+        sourceLL.clear();
+    }
 
-        constraintsViewer.textArea.setCaretPosition(0);
-        memoryViewer.textArea.setCaretPosition(0);
-        contextViewer.textArea.setCaretPosition(0);
+    private void load(String dir) {
+        try{
+            tree.load(Paths.get(dir));
+            sourceMapping.load(dir);
+        } catch(Exception e){
+            JOptionPane.showMessageDialog(rootPanel, "Load has FAILED: " + e);
+            clear();
+            rootPanel.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            return;
+        }
+        treeViewer.load();
+        sourceC.load();
+        sourceLL.load();
+
+        for (int i = 0; i < tree.rounds.size(); ++i)
+            ((DefaultListModel<String>)roundsList.getModel()).addElement(tree.rounds.get(i));
     }
 
     public static void main(String[] args) {
@@ -58,94 +123,10 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
                 frame.setPreferredSize(new Dimension(800, 600));
 
                 ProgressExplorer explorer = new ProgressExplorer();
-                if (args.length != ARGS_COUNT) {
+                if (args.length != ARGS_COUNT)
                     throw new IllegalArgumentException("Invalid number of arguments. Expected " + ARGS_COUNT + " arguments.");
-                }
 
-                try {
-                    explorer.tree.loadFiles(Paths.get(args[0]));
-                } catch (Exception e) {
-                    System.out.println("File load failed: " + e);
-                    return;
-                }
-                explorer.treeViewer.load();
-
-                JScrollPane treeScrollPane = new JScrollPane(explorer.treeViewer);
-                treeScrollPane.setWheelScrollingEnabled(false);
-                treeScrollPane.addMouseWheelListener(new MouseWheelListener() {
-                    @Override
-                    public void mouseWheelMoved(MouseWheelEvent e) {
-                        explorer.treeViewer.onZoomChanged(-e.getWheelRotation());
-                    }
-                });
-
-                String[] roundsArray = explorer.tree.rounds.toArray(new String[0]);
-                explorer.roundsList = new JList<>(roundsArray);
-                explorer.roundsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-                explorer.roundsList.addListSelectionListener(explorer);
-
-                JScrollPane roundScrollPane = new JScrollPane(explorer.roundsList);
-
-                JPanel treePanel = new JPanel(new BorderLayout());
-                treePanel.add(treeScrollPane, BorderLayout.CENTER);
-
-                JPanel sourceC = new JPanel(new BorderLayout());
-                JPanel sourceLL = new JPanel(new BorderLayout());
-
-                JTabbedPane mainTabbedPane = new JTabbedPane(JTabbedPane.TOP);
-                mainTabbedPane.addTab("Tree", treePanel);
-                mainTabbedPane.addTab("C", sourceC);
-                mainTabbedPane.addTab("LL", sourceLL);
-
-                JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-                tabbedPane.addTab("Context", explorer.contextViewer);
-                tabbedPane.addTab("Constraints", explorer.constraintsViewer);
-                tabbedPane.addTab("Memory", explorer.memoryViewer);
-
-                tabbedPane.setVisible(false);
-
-                JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mainTabbedPane, tabbedPane);
-
-                JSplitPane mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, roundScrollPane, splitPane);
-                mainSplitPane.setDividerLocation(100);
-
-                explorer.rootPanel.add(mainSplitPane, BorderLayout.CENTER);
-                explorer.treeViewer.addMouseListener(new MouseListener() {
-                    @Override
-                    public void mouseClicked(MouseEvent e) {
-                        Node node = explorer.treeViewer.onMouseClicked(e.getX(), e.getY());
-                        if (tabbedPane.isVisible())
-                            explorer.divider = splitPane.getDividerLocation();
-
-                        if (node != null){
-                            explorer.showNodeInformation(node);
-                            tabbedPane.setVisible(true);
-                            splitPane.setDividerLocation(explorer.divider);
-                        } else{
-                            tabbedPane.setVisible(false);
-                        }
-                    }
-
-                    @Override
-                    public void mousePressed(MouseEvent e) {
-
-                    }
-
-                    @Override
-                    public void mouseReleased(MouseEvent e) {
-
-                    }
-
-                    @Override
-                    public void mouseEntered(MouseEvent e) {
-
-                    }
-
-                    @Override
-                    public void mouseExited(MouseEvent e) {
-
-                    }
-                });
+                explorer.load(args[0]);
 
                 frame.setContentPane(explorer.rootPanel);
                 frame.pack();
@@ -154,33 +135,31 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
             }
         });
     }
-
-    @Override
-    public void mouseWheelMoved(MouseWheelEvent e) {
-    }
-
     @Override
     public void mouseClicked(MouseEvent e) {
+        Node node = treeViewer.onMouseClicked(e.getX(), e.getY());
+        if (leftTabbedPane.isVisible())
+            divider = splitPane.getDividerLocation();
 
+        if (node != null){
+            contextViewer.showContext(node.executionState);
+            constraintsViewer.showConstraints(node.executionState);
+            memoryViewer.showMemory(node.executionState);
+
+            leftTabbedPane.setVisible(true);
+            splitPane.setDividerLocation(divider);
+        } else{
+            leftTabbedPane.setVisible(false);
+        }
     }
-
     @Override
-    public void mousePressed(MouseEvent e) {
-
-    }
-
+    public void mouseWheelMoved(MouseWheelEvent e) {}
     @Override
-    public void mouseReleased(MouseEvent e) {
-
-    }
-
+    public void mousePressed(MouseEvent e) {}
     @Override
-    public void mouseEntered(MouseEvent e) {
-
-    }
-
+    public void mouseReleased(MouseEvent e) {}
     @Override
-    public void mouseExited(MouseEvent e) {
-
-    }
+    public void mouseEntered(MouseEvent e) {}
+    @Override
+    public void mouseExited(MouseEvent e) {}
 }

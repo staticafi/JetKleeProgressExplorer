@@ -5,7 +5,7 @@ import java.awt.*;
 
 public abstract class TextViewerBase extends JPanel {
     protected JTextArea textArea;
-    protected JScrollPane scrollPane;
+    private JScrollPane scrollPane;
     public TextViewerBase() {
         super(new BorderLayout());
         textArea = new JTextArea();
@@ -13,6 +13,7 @@ public abstract class TextViewerBase extends JPanel {
 
         scrollPane.setWheelScrollingEnabled(true);
         textArea.setEditable(false);
+        textArea.setText("");
         add(scrollPane, BorderLayout.CENTER);
     }
 }

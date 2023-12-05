@@ -1,7 +1,5 @@
 package jetklee;
 
-import javax.swing.*;
-
 public class MemoryViewer extends TextViewerBase {
     public MemoryViewer() {
         super();
@@ -20,5 +18,6 @@ public class MemoryViewer extends TextViewerBase {
             textArea.append(executionState.objectStates.get(i).toString());
             textArea.append("\n\n");
         }
+        textArea.setCaretPosition(0);
     }
 }

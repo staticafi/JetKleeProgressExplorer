@@ -7,7 +7,7 @@ public class ContextViewer extends TextViewerBase {
 
     public void showContext(ExecutionState executionState) {
         textArea.setText("");
-//        textArea.append(node.other.toString());
         textArea.append(executionState.context.toString());
+        textArea.setCaretPosition(0);
     }
 }
