@@ -7,15 +7,24 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 
-public class SourceViewerC extends SourceViewerBase{
-    private SourceMapping mapping;
+/**
+ * Displays C source code.
+ */
+public class SourceViewerC extends SourceViewerBase {
+    private SourceLoader sourceLoader;
     private JLabel lineColumnLabel;
-    public SourceViewerC(SourceMapping sourceMapping_) {
+
+    /**
+     * Initializes C source code panel and displays line and column label.
+     * @param sourceLoader_ loads code from source.c file
+     */
+
+    public SourceViewerC(SourceLoader sourceLoader_) {
         super();
-        mapping = sourceMapping_;
+        sourceLoader = sourceLoader_;
         lineColumnLabel = new JLabel("Ln 1, Col 1");
         lineColumnLabel.setOpaque(true);
-        lineColumnLabel.setFont( new Font("Monospaced", Font.PLAIN, textFontSize));
+        lineColumnLabel.setFont(new Font("Monospaced", Font.PLAIN, textFontSize));
 
         JPanel statusPanel = new JPanel(new BorderLayout());
         statusPanel.add(lineColumnLabel, BorderLayout.EAST);
@@ -23,6 +32,7 @@ public class SourceViewerC extends SourceViewerBase{
 
         MouseAdapter ma = new MouseAdapter() {
             private int lastIdx = -1;
+
             @Override
             public void mouseMoved(MouseEvent e) {
                 int idx = textArea.viewToModel2D(e.getPoint());
@@ -43,16 +53,13 @@ public class SourceViewerC extends SourceViewerBase{
         textArea.addMouseListener(ma);
         textArea.addMouseMotionListener(ma);
     }
+
     @Override
     public List<String> getSourceCodeLines() {
-        return mapping.sourceC;
-    }
-    public void load() {
-        super.load();
+        return sourceLoader.sourceC;
     }
 
-    public void clear() {
-        textArea.setText("");
-        lineColumnLabel.setText("");
+    public void setSourceCodeLines() {
+        super.setSourceCodeLines();
     }
 }

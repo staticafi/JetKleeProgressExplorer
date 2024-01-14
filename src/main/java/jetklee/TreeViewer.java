@@ -7,23 +7,34 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Panel responsible for rendering and displaying the process tree.
+ */
+
 public class TreeViewer extends JPanel {
     public Tree tree;
     public int selectedRound;
-    public float zoom;
-    public static int borderSize = 100;
-    public static int nodeSeparatorHorizontal = 25;
-    public static int nodeSeparatorVertical = 200;
-    public static int nodeWidth = 150;
-    public static int nodeHeight = 75;
     private List<Dimension> areas;
+    private Rectangle viewRect;
+    private float zoom;
+    private static Font font = makeFont(1.0f);
     private static final float minZoom = 0.0f;
     private static final float maxZoom = 1.5f;
-    public Rectangle viewRect;
-    public static Color leftColor = Color.RED;
-    public static Color rightColor = Color.BLUE;
-    public static Color nodeColor = Color.BLACK;
+    private static final float textZoomLimit = 0.2f;
+    private static final int borderSize = 100;
+    private static final int nodeSeparatorHorizontal = 25;
+    private static final int nodeSeparatorVertical = 200;
+    private static final int nodeWidth = 100;
+    private static final int nodeHeight = 50;
+    private static final Color leftColor = Color.RED;
+    private static final Color rightColor = Color.BLUE;
+    private static final Color nodeColor = Color.BLACK;
 
+    /**
+     * Enables mouse dragging to navigate through the process tree displayed in the tree panel.
+     *
+     * @param tree_ process tree to be displayed.
+     */
     public TreeViewer(Tree tree_) {
         tree = tree_;
         zoom = 1.0f;
@@ -48,7 +59,7 @@ public class TreeViewer extends JPanel {
 
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (origin != null) {
+                if (origin != null && SwingUtilities.isLeftMouseButton(e)) {
                     Rectangle rect = new Rectangle(getVisibleRect());
                     rect.x += origin.x - e.getX();
                     rect.y += origin.y - e.getY();
@@ -60,6 +71,11 @@ public class TreeViewer extends JPanel {
         addMouseMotionListener(ma);
     }
 
+    /**
+     * Adjusts the zoom level based on mouse wheel rotations, updates the view.
+     *
+     * @param wheelRotations number of mouse wheel rotations, change in zoom.
+     */
     public void onZoomChanged(int wheelRotations) {
         float newZoom = zoom + wheelRotations / 10.0f;
         if (newZoom < minZoom || newZoom > maxZoom) return;
@@ -70,9 +86,17 @@ public class TreeViewer extends JPanel {
             viewRect.y += Math.round(newZoom / zoom * mouse.y) - mouse.y;
         }
         zoom = newZoom;
+        font = makeFont(zoom);
         updateArea();
     }
 
+    /**
+     * Checks which node was clicked.
+     *
+     * @param clickX x coordinate of the click on the JPanel.
+     * @param clickY y coordinate of the click on the JPanel.
+     * @return clicked node or null.
+     */
     public Node onMouseClicked(int clickX, int clickY) {
         for (Node node : tree.nodes.values()) {
             int rectX = Math.round(zoom * (node.viewProps.x - nodeWidth / 2));
@@ -83,6 +107,10 @@ public class TreeViewer extends JPanel {
         return null;
     }
 
+    /**
+     * Computes node locations and size of panel needed in each round.
+     * Scrolls the view to make the tree root visible.
+     */
     public void load() {
         if (tree.root == null) return;
         computeNodeLocations(tree.root, borderSize + nodeWidth / 2, 0);
@@ -109,6 +137,43 @@ public class TreeViewer extends JPanel {
         });
     }
 
+    /**
+     * Updates tree panel based on selected round and level of zoom.
+     */
+    public void updateArea() {
+        Dimension area = areas.get(selectedRound);
+        setPreferredSize(new Dimension(Math.round(zoom * area.width), Math.round(zoom * area.height)));
+        revalidate();
+        repaint();
+    }
+
+    /**
+     * Customize rendering of the tree panel. Scrolls to visible rectangle and draws the tree.
+     *
+     * @param g the Graphics object used for painting.
+     */
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        if (viewRect != null) {
+            scrollRectToVisible(viewRect);
+            viewRect = null;
+        }
+        if (tree.root != null) {
+            Graphics2D g2d = (Graphics2D) g;
+            g2d.setFont(font);
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            drawSubTree(g2d, tree.root, getVisibleRect());
+        }
+    }
+
+    /**
+     * Recursively computes coordinates of the tree node on the JPanel.
+     *
+     * @param node  root of the tree for which coordinates are computed.
+     * @param minX  minimal x-coordinate of the node's subtree.
+     * @param depth depth of the node in the tree.
+     * @return the minimum x-coordinate in the subtree.
+     */
     private int computeNodeLocations(Node node, int minX, int depth) {
         if (node.left != null && node.right != null) {
             minX = Math.max(minX, computeNodeLocations(node.left, minX, depth + 1));
@@ -117,13 +182,6 @@ public class TreeViewer extends JPanel {
 
             node.viewProps.subTreeMinX = node.left.viewProps.subTreeMinX;
             node.viewProps.subTreeMaxX = node.right.viewProps.subTreeMaxX;
-
-//        } else if (node.left != null) {
-//            minX = Math.max(minX, computeNodeLocations(node.left, minX, depth + 1));
-//            node.viewProps.x = node.left.viewProps.x;
-//        } else if (node.right != null) {
-//            minX = Math.max(minX, computeNodeLocations(node.right, minX, depth + 1));
-//            node.viewProps.x = node.right.viewProps.x;
         } else {
             node.viewProps.x = minX;
             node.viewProps.subTreeMinX = minX - nodeWidth / 2 - nodeSeparatorHorizontal / 2;
@@ -134,6 +192,13 @@ public class TreeViewer extends JPanel {
         return minX;
     }
 
+    /**
+     * Recursively computes size of JPanel for given round.
+     *
+     * @param node  root of the tree for which the size is computed.
+     * @param round round for which the size is computed.
+     * @param area  stores the result of the computation.
+     */
     private void computeAreas(Node node, int round, Dimension area) {
         if (node == null || !isVisibleNode(node, round)) return;
 
@@ -142,26 +207,6 @@ public class TreeViewer extends JPanel {
 
         area.width = Math.max(area.width, node.viewProps.x + nodeWidth / 2);
         area.height = Math.max(area.height, node.viewProps.y + nodeHeight / 2);
-    }
-
-    public void updateArea() {
-        Dimension area = areas.get(selectedRound);
-        setPreferredSize(new Dimension(Math.round(zoom * area.width), Math.round(zoom * area.height)));
-        revalidate();
-        repaint();
-    }
-
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        if (viewRect != null) {
-            scrollRectToVisible(viewRect);
-            viewRect = null;
-        }
-        if (tree.root != null) {
-            Graphics2D g2d = (Graphics2D) g;
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            drawSubTree(g2d, tree.root, getVisibleRect());
-        }
     }
 
     private boolean isVisibleNode(Node node, int round) {
@@ -178,6 +223,13 @@ public class TreeViewer extends JPanel {
         drawSubTree(g2d, child, getVisibleRect());
     }
 
+    /**
+     * Recursively draws visible parts of the process tree.
+     *
+     * @param g2d         graphics component on which the tree is drawn.
+     * @param node        root of the tree which is drawn.
+     * @param visibleRect part of the JPanel which is currently visible on the screen.
+     */
     private void drawSubTree(Graphics2D g2d, Node node, Rectangle visibleRect) {
         if (!isVisibleNode(node, selectedRound)) return;
         // whole subtree on left or right side of the visible rectangle
@@ -207,21 +259,22 @@ public class TreeViewer extends JPanel {
 
         g2d.setColor(nodeColor);
         g2d.drawRect(
-                Math.round(zoom * (node.viewProps.x - nodeWidth / 2.0f)),
-                Math.round(zoom * (node.viewProps.y - nodeHeight / 2.0f)),
+                Math.round(zoom * (node.viewProps.x - nodeWidth / 2)),
+                Math.round(zoom * (node.viewProps.y - nodeHeight / 2)),
                 Math.round(zoom * nodeWidth),
                 Math.round(zoom * nodeHeight)
         );
-        g2d.drawString(
-                Integer.toString(node.id),
-                Math.round(zoom * (node.viewProps.x)),
-                Math.round(zoom * (node.viewProps.y))
-        );
+
+        if (zoom >= textZoomLimit) {
+            g2d.drawString(
+                    Integer.toString(node.id),
+                    Math.round(zoom * (node.viewProps.x - nodeWidth / 2)),
+                    Math.round(zoom * (node.viewProps.y + nodeHeight / 4))
+            );
+        }
     }
 
-    public void clear() {
-        selectedRound = 0;
-        revalidate();
-        repaint();
+    private static Font makeFont(float zoom) {
+        return font = new Font("Monospaced", Font.PLAIN, Math.round((0.75f * nodeHeight) * zoom));
     }
 }

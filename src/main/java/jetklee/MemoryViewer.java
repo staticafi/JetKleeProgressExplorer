@@ -1,11 +1,14 @@
 package jetklee;
 
+/**
+ * Panel that displays memory of selected execution state
+ */
 public class MemoryViewer extends TextViewerBase {
     public MemoryViewer() {
         super();
     }
 
-    public void showMemory(ExecutionState executionState) {
+    public void displayMemory(ExecutionState executionState) {
         textArea.setText("");
         textArea.append("Objects:\n");
         for (int i = 0; i < executionState.objects.size(); i++) {

@@ -2,20 +2,23 @@ package jetklee;
 
 import java.util.List;
 
-public class SourceViewerLL extends SourceViewerBase{
-    private SourceMapping mapping;
-    public SourceViewerLL(SourceMapping sourceMapping_) {
+/**
+ * Displays LL source code.
+ */
+public class SourceViewerLL extends SourceViewerBase {
+    private SourceLoader sourceLoader;
+
+    public SourceViewerLL(SourceLoader sourceLoader_) {
         super();
-        mapping = sourceMapping_;
+        sourceLoader = sourceLoader_;
     }
+
     @Override
     public List<String> getSourceCodeLines() {
-        return mapping.sourceLL;
+        return sourceLoader.sourceLL;
     }
-    public void load() {
-        super.load();
-    }
-    public void clear(){
-        textArea.setText("");
+
+    public void setSourceCodeLines() {
+        super.setSourceCodeLines();
     }
 }

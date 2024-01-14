@@ -7,6 +7,9 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 
+/**
+ * Process Tree created based on the data stored in the json files
+ */
 public class Tree {
     public Node root;
     public HashMap<Integer, Node> nodes;
@@ -20,6 +23,12 @@ public class Tree {
         roundCounter = 0;
     }
 
+    /**
+     * Loads json files containing data about the process tree.
+     *
+     * @param dir directory with json files.
+     * @throws Exception thrown if file can't be loaded.
+     */
     public void load(Path dir) throws Exception {
         Files.list(dir)
                 .filter(Files::isRegularFile)
@@ -50,6 +59,9 @@ public class Tree {
         );
     }
 
+    /**
+     * Corresponds to action in json files.
+     */
     private enum Action {
         INSERT_NODE, INSERT_EDGE, ERASE_NODE;
 
@@ -58,12 +70,18 @@ public class Tree {
                 case "InsertNode" -> INSERT_NODE;
                 case "InsertEdge" -> INSERT_EDGE;
                 case "EraseNode" -> ERASE_NODE;
-                default -> throw new Exception("Unknown action: " + actionStr);
+                default -> throw new Exception("Unknown tree action: " + actionStr);
             };
         }
 
     }
 
+    /**
+     * Loads one json file and performs the actions (insert node, insert edge, erase node).
+     *
+     * @param filePath of the json file.
+     * @throws Exception thrown if the action is unknown.
+     */
     private void loadFile(Path filePath) throws Exception {
         String fileContent;
 
@@ -108,7 +126,7 @@ public class Tree {
     private void insertEdge(JSONObject actionJSON) {
         int parentID = actionJSON.getInt("parentID");
         int childID = actionJSON.getInt("childID");
-        int tag = actionJSON.getInt("tag");
+//        int tag = actionJSON.getInt("tag");
 
         Node parent = nodes.get(parentID);
         Node child = nodes.get(childID);
@@ -125,37 +143,4 @@ public class Tree {
         Node node = nodes.get(nodeID);
         node.endRound = roundCounter;
     }
-
-    private void dumpAction(String actionStr) {
-        System.out.print("Action: " + actionStr + ", ");
-        System.out.print("Nodes: ");
-        for (Integer id : nodes.keySet()) {
-            System.out.print(id + " ");
-        }
-        System.out.println();
-    }
-
-    public void dumpTree() {
-        if (root == null) return;
-        Queue<Node> queue = new LinkedList<>();
-        queue.add(root);
-
-        while (!queue.isEmpty()) {
-            Node node = queue.poll();
-            System.out.print(node.id + "\n");
-
-            if (node.left != null)
-                queue.add(node.left);
-            if (node.right != null)
-                queue.add(node.right);
-        }
-    }
-
-    public void clear() {
-        root = null;
-        nodes = null;
-        rounds = null;
-        roundCounter = 0;
-    }
-
 }

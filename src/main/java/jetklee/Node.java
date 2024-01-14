@@ -1,4 +1,8 @@
 package jetklee;
+
+/**
+ * Node of the process tree
+ */
 public class Node {
 
     public class ViewProps {
@@ -17,6 +21,9 @@ public class Node {
     ViewProps viewProps;
     public ExecutionState executionState;
 
+    /**
+     * @param id_ unique node id
+     */
     public Node(int id_) {
         id = id_;
         endRound = 0;

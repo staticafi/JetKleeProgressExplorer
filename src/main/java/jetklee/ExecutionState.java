@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Parses and holds information about execution state of the process tree
+ */
 public class ExecutionState {
     public record Location(String file, int line, int column, int assemblyLine) {
         @Override
@@ -21,7 +24,8 @@ public class ExecutionState {
         }
     }
 
-    public record Context(int nodeID, int stateID, boolean uniqueState, Location location, int depth, boolean coveredNew,
+    public record Context(int nodeID, int stateID, boolean uniqueState, Location location, int depth,
+                          boolean coveredNew,
                           boolean forkDisabled, ArrayList<Location> stack) {
         @Override
         public String toString() {
@@ -82,7 +86,7 @@ public class ExecutionState {
         public enum Type {
             SEGMENT, OFFSET;
 
-            private static String toString(Type type) {
+            public static String toString(Type type) {
                 return switch (type) {
                     case SEGMENT -> "segmentPlane";
                     case OFFSET -> "offsetPlane";
@@ -97,7 +101,7 @@ public class ExecutionState {
                 bytesStr.append("            ");
                 bytesStr.append(byte_.toString()).append("\n");
             }
-            StringBuilder updatesStr= new StringBuilder();
+            StringBuilder updatesStr = new StringBuilder();
             for (Map.Entry<Integer, String> update : updates.entrySet()) {
                 bytesStr.append("            ");
                 updatesStr.append(update.getKey().toString());
@@ -142,6 +146,9 @@ public class ExecutionState {
     public ArrayList<Object> objects;
     public ArrayList<ObjectState> objectStates;
 
+    /**
+     * @param data information about one execution state
+     */
     public ExecutionState(JSONObject data) {
         context = parseContext(data);
         constraints = parseConstraints(data);
@@ -156,7 +163,6 @@ public class ExecutionState {
         JSONArray objectStatesJSON = data.getJSONArray("objectStates");
         for (int i = 0; i < objectStatesJSON.length(); i++) {
             JSONObject objectStateJSON = objectStatesJSON.getJSONObject(i);
-
 
             ObjectState objectState = new ObjectState(
                     objectStateJSON.getInt("objID"),
