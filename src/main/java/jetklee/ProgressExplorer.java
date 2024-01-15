@@ -104,7 +104,6 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
                 ProgressExplorer explorer = new ProgressExplorer();
                 if (args.length != ARGS_COUNT)
                     throw new IllegalArgumentException("Invalid number of arguments. Expected " + ARGS_COUNT + " arguments.");
-                System.out.println(Paths.get(args[0]).toAbsolutePath().toString());
                 explorer.load(Paths.get(args[0]).toAbsolutePath().toString());
 
                 frame.setContentPane(explorer.rootPanel);

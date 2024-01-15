@@ -8,7 +8,7 @@ import java.util.List;
  */
 public abstract class SourceViewerBase extends TextViewerBase {
     protected static final int textFontSize = 14;
-    private static final Color HIGHLIGHT_COLOR = new Color(200, 221, 242);
+    private static final Color HIGHLIGHT_COLOR = new Color(184, 207, 229);
     protected int numLineColumnChars;
 
     public SourceViewerBase() {
