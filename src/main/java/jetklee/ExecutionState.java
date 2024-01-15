@@ -211,11 +211,12 @@ public class ExecutionState {
         JSONArray stackJSON = data.getJSONArray("stack");
         ArrayList<Location> stack = new ArrayList<>();
         for (int i = 0; i < stackJSON.length(); i++) {
+            JSONArray stackLocationJSON = stackJSON.getJSONArray(i);
             Location stackLocation = new Location(
-                    stackJSON.getString(0),
-                    stackJSON.getInt(1),
-                    stackJSON.getInt(2),
-                    stackJSON.getInt(3)
+                    stackLocationJSON.getString(0),
+                    stackLocationJSON.getInt(1),
+                    stackLocationJSON.getInt(2),
+                    stackLocationJSON.getInt(3)
             );
             stack.add(stackLocation);
         }

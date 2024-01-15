@@ -17,6 +17,9 @@ public abstract class TextViewerBase extends JPanel {
         textArea = new JTextArea();
         scrollPane = new JScrollPane(textArea);
 
+//        Font customFont = new Font("Arial", Font.PLAIN, 30);
+//        textArea.setFont(customFont);
+
         scrollPane.setWheelScrollingEnabled(true);
         textArea.setEditable(false);
         textArea.setText("");
