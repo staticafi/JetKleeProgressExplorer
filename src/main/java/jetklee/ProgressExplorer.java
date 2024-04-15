@@ -97,6 +97,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
              * command line argument.
              */
             public void run() {
+//                double startTime = System.currentTimeMillis();
                 JFrame frame = new JFrame("JetKlee: ProgressExplorer");
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.setPreferredSize(new Dimension(800, 600));
@@ -110,6 +111,11 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
                 frame.pack();
                 frame.setVisible(true);
                 frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+
+//                double totalTime = (System.currentTimeMillis() - startTime) / 1000.0f;
+//                String formattedTime = String.format("%.2f", totalTime);
+//                System.out.println(formattedTime);
+//                System.exit(0);
             }
         });
     }

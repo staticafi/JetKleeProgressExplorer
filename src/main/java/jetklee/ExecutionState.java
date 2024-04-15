@@ -11,6 +11,9 @@ import java.util.Map;
  * Parses and holds information about execution state of the process tree
  */
 public class ExecutionState {
+    public static final int BYTES_INDENT = 12;
+    public static final int OBJS_INDENT = 4;
+
     public record Location(String file, int line, int column, int assemblyLine) {
         @Override
         public String toString() {
@@ -24,9 +27,11 @@ public class ExecutionState {
         }
     }
 
-    public record Context(int nodeID, int stateID, boolean uniqueState, Location location, int depth,
+    public record Context(int nodeID, int stateID, boolean uniqueState, int parentID, int parentJSON, Location location,
+                          Location nextLocation, int incomingBBIndex, int depth,
                           boolean coveredNew,
-                          boolean forkDisabled, ArrayList<Location> stack) {
+                          boolean forkDisabled, int instsSinceCovNew, int nextID, int steppedInstructions,
+                          ArrayList<Location> stack) {
         @Override
         public String toString() {
             StringBuilder stackStr = new StringBuilder();
@@ -38,51 +43,85 @@ public class ExecutionState {
                     "nodeID: %d\n" +
                             "stateID: %d\n" +
                             "uniqueState: %s\n" +
+                            "parentID: %d\n" +
+                            "parentJSON: %d\n" +
                             "location: %s\n" +
+                            "nextLocation: %s\n" +
+                            "incomingBBIndex: %d\n" +
                             "depth: %d\n" +
                             "coveredNew: %s\n" +
                             "forkDisabled: %s\n" +
+                            "instsSinceCovNew: %d\n" +
+                            "nextID: %d\n" +
+                            "steppedInstructions: %d\n" +
                             "stack: %s",
-                    nodeID, stateID, uniqueState, location.toString(), depth, coveredNew, forkDisabled, stackStr
+                    nodeID, stateID, uniqueState, parentID, parentJSON, location.toString(), nextLocation.toString(),
+                    incomingBBIndex, depth, coveredNew, forkDisabled, instsSinceCovNew, nextID, steppedInstructions, stackStr
+            );
+        }
+    }
+
+    public record Diff<T>(ArrayList<T> additions, ArrayList<T> deletions, int indent) {
+        @Override
+        public String toString() {
+            if (additions.isEmpty() && deletions.isEmpty()) return "";
+
+            StringBuilder addStr = new StringBuilder();
+            for (T addition : additions) {
+                addStr.append(" ".repeat(indent + 4));
+                addStr.append(addition.toString()).append("\n");
+            }
+            StringBuilder delStr = new StringBuilder();
+            for (T deletion : deletions) {
+                delStr.append(" ".repeat(indent + 4));
+                delStr.append(deletion.toString()).append("\n");
+            }
+
+            return String.format(
+                    " ".repeat(indent) + "add: \n%s" +
+                            " ".repeat(indent) + "del: \n%s ",
+                    addStr, delStr
             );
         }
     }
 
     public record Object(int objID, int segment, String name, String size, boolean isLocal, boolean isGlobal,
-                         boolean isFixed, boolean isLazy, String symAddress) {
+                         boolean isFixed, boolean isUserSpecified, boolean isLazy, String symAddress) {
         @Override
         public String toString() {
             return String.format(
-                    "    objID: %d, " +
+                    "objID: %d, " +
                             "segment: %d, " +
                             "name: %s, " +
                             "size: %s, " +
                             "isLocal: %s, " +
                             "isGlobal: %s, " +
                             "isFixed: %s, " +
+                            "isUserSpecified: %s, " +
                             "isLazy: %s, " +
                             "symAddress: %s",
-                    objID, segment, name, size, isLocal, isGlobal, isFixed, isLazy, symAddress
+                    objID, segment, name, size, isLocal, isGlobal, isFixed, isUserSpecified, isLazy, symAddress
             );
         }
     }
 
-    public record Byte(boolean concrete, boolean knownSym, boolean unflushed, String value) {
+    public record Byte(int id, boolean concrete, boolean knownSym, boolean unflushed, String value) {
         @Override
         public String toString() {
             return String.format(
-                    "concrete: %s, " +
+                    "id: %d, " +
+                            "concrete: %s, " +
                             "knownSym: %s, " +
                             "unflushed: %s, " +
                             "value: %s",
-                    concrete, knownSym, unflushed, value
+                    id, concrete, knownSym, unflushed, value
             );
         }
     }
 
     public record Plane(Type type, int memoryObjectID, String rootObject, int sizeBound,
                         boolean initialized, boolean symbolic, int initialValue,
-                        ArrayList<Byte> bytes, LinkedHashMap<Integer, String> updates) {
+                        Diff<Byte> bytes, LinkedHashMap<Integer, String> updates) {
         public enum Type {
             SEGMENT, OFFSET;
 
@@ -96,14 +135,8 @@ public class ExecutionState {
 
         @Override
         public String toString() {
-            StringBuilder bytesStr = new StringBuilder();
-            for (Byte byte_ : bytes) {
-                bytesStr.append("            ");
-                bytesStr.append(byte_.toString()).append("\n");
-            }
             StringBuilder updatesStr = new StringBuilder();
             for (Map.Entry<Integer, String> update : updates.entrySet()) {
-                bytesStr.append("            ");
                 updatesStr.append(update.getKey().toString());
                 updatesStr.append(" : ");
                 updatesStr.append(update.getValue());
@@ -119,10 +152,9 @@ public class ExecutionState {
                             "initialValue: %d, " +
                             "\n        bytes:\n%s" +
                             "\n        updates:\n%s",
-                    memoryObjectID, rootObject, sizeBound, initialized, symbolic, initialValue, bytesStr, updatesStr
+                    memoryObjectID, rootObject, sizeBound, initialized, symbolic, initialValue, bytes.toString(), updatesStr
             );
         }
-
     }
 
     public record ObjectState(int objID, int copyOnWriteOwner, boolean readOnly, Plane segmentPlane,
@@ -143,7 +175,7 @@ public class ExecutionState {
 
     public Context context;
     public ArrayList<String> constraints;
-    public ArrayList<Object> objects;
+    public Diff<Object> objectsDiff;
     public ArrayList<ObjectState> objectStates;
 
     /**
@@ -152,7 +184,7 @@ public class ExecutionState {
     public ExecutionState(JSONObject data) {
         context = parseContext(data);
         constraints = parseConstraints(data);
-        objects = parseObjects(data);
+        objectsDiff = parseObjects(data);
         objectStates = parseObjectStates(data);
     }
 
@@ -176,11 +208,8 @@ public class ExecutionState {
         return objectStates;
     }
 
-    private ArrayList<Object> parseObjects(JSONObject data) {
-        objects = new ArrayList<>();
-        if (!data.has("objects")) return objects;
-
-        JSONArray objectsJSON = data.getJSONArray("objects");
+    private ArrayList<Object> parseObject(JSONArray objectsJSON) {
+        ArrayList<Object> objects = new ArrayList<>();
         for (int i = 0; i < objectsJSON.length(); i++) {
             JSONObject objectJSON = objectsJSON.getJSONObject(i);
             Object object = new Object(
@@ -191,22 +220,47 @@ public class ExecutionState {
                     objectJSON.getInt("isLocal") == 1,
                     objectJSON.getInt("isGlobal") == 1,
                     objectJSON.getInt("isFixed") == 1,
-                    objectJSON.getInt("isLazy") == 1,
-                    objectJSON.getString("symAddress")
+                    objectJSON.getInt("isUserSpecified") == 1,
+                    objectJSON.getInt("isLazyInitialized") == 1,
+                    objectJSON.getString("symbolicAddress")
             );
             objects.add(object);
         }
         return objects;
     }
 
-    private Context parseContext(JSONObject data) {
-        JSONArray locationJSON = data.getJSONArray("location");
-        Location location = new Location(
+    private Diff<Object> parseObjects(JSONObject data) {
+        ArrayList<Object> additions = new ArrayList<>();
+        ArrayList<Object> deletions = new ArrayList<>();
+
+        if (data.has("objects")) {
+            JSONObject objectsJSON = data.getJSONObject("objects");
+            if (objectsJSON.has("add")) {
+                JSONArray additionsJSON = objectsJSON.getJSONArray("add");
+                additions = parseObject(additionsJSON);
+            }
+            if (objectsJSON.has("del")) {
+                JSONArray additionsJSON = objectsJSON.getJSONArray("del");
+                deletions = parseObject(additionsJSON);
+            }
+        }
+
+        return new Diff<>(additions, deletions, OBJS_INDENT);
+    }
+
+    private Location getLocation(JSONObject data, String location) {
+        JSONArray locationJSON = data.getJSONArray(location);
+        return new Location(
                 locationJSON.getString(0),
                 locationJSON.getInt(1),
                 locationJSON.getInt(2),
                 locationJSON.getInt(3)
         );
+    }
+
+    private Context parseContext(JSONObject data) {
+        Location location = getLocation(data, "location");
+        Location nextLocation = getLocation(data, "nextLocation");
 
         JSONArray stackJSON = data.getJSONArray("stack");
         ArrayList<Location> stack = new ArrayList<>();
@@ -225,10 +279,17 @@ public class ExecutionState {
                 data.getInt("nodeID"),
                 data.getInt("stateID"),
                 data.getInt("uniqueState") == 1,
+                data.getInt("parentID"),
+                data.getInt("parentJSON"),
                 location,
+                nextLocation,
+                data.getInt("incomingBBIndex"),
                 data.getInt("depth"),
                 data.getInt("coveredNew") == 1,
                 data.getInt("forkDisabled") == 1,
+                data.getInt("instsSinceCovNew"),
+                data.getInt("nextID"),
+                data.getInt("steppedInstructions"),
                 stack
         );
     }
@@ -242,22 +303,44 @@ public class ExecutionState {
         return constraints;
     }
 
+    private ArrayList<Byte> parseByte(JSONArray bytesJSON) {
+        ArrayList<Byte> bytes = new ArrayList<>();
+        for (int i = 0; i < bytesJSON.length(); i++) {
+            JSONObject byteJSON = bytesJSON.getJSONObject(i);
+            Byte b = new Byte(
+                    byteJSON.getInt("byteID"),
+                    byteJSON.getInt("concrete") == 1,
+                    byteJSON.getInt("knownSym") == 1,
+                    byteJSON.getInt("unflushed") == 1,
+                    byteJSON.getString("value")
+            );
+            bytes.add(b);
+        }
+        return bytes;
+    }
+
+    private Diff<Byte> parseBytes(JSONObject bytes) {
+        ArrayList<Byte> additions = new ArrayList<>();
+        ArrayList<Byte> deletions = new ArrayList<>();
+
+        if (bytes.has("add")) {
+            JSONArray additionsJSON = bytes.getJSONArray("add");
+            additions = parseByte(additionsJSON);
+        }
+        if (bytes.has("del")) {
+            JSONArray additionsJSON = bytes.getJSONArray("del");
+            deletions = parseByte(additionsJSON);
+        }
+
+        return new Diff<>(additions, deletions, BYTES_INDENT);
+    }
+
     private Plane parsePlane(JSONObject data, Plane.Type type) {
         JSONObject planeJSON = data.getJSONObject(Plane.Type.toString(type));
         if (planeJSON.isEmpty()) return null;
 
-        JSONArray bytesJSON = planeJSON.getJSONArray("bytes");
-        ArrayList<Byte> bytes = new ArrayList<>();
-        for (int i = 0; i < bytesJSON.length(); ++i) {
-            JSONObject byteJSON = bytesJSON.getJSONObject(i);
-            bytes.add(new Byte(
-                            byteJSON.getInt("concrete") == 1,
-                            byteJSON.getInt("knownSym") == 1,
-                            byteJSON.getInt("unflushed") == 1,
-                            byteJSON.getString("value")
-                    )
-            );
-        }
+        JSONObject bytesJSON = planeJSON.getJSONObject("bytes");
+        Diff<Byte> bytes = parseBytes(bytesJSON);
 
         JSONArray updatesJSON = planeJSON.getJSONArray("updates");
         LinkedHashMap<Integer, String> updates = new LinkedHashMap<>();
