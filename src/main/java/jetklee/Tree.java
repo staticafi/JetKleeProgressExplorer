@@ -36,6 +36,7 @@ public class Tree {
                 .sorted(Comparator.comparingInt(this::pathToInt))
                 .forEach(file -> {
                     try {
+                        System.out.println("Loading file: " + file.getFileName().toString());
                         loadFile(file);
                     } catch (Exception e) {
                         throw new RuntimeException(e);

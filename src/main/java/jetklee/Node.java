@@ -33,4 +33,8 @@ public class Node {
         right = null;
         viewProps = new ViewProps();
     }
+
+    public boolean isRoot() {
+        return parent == null;
+    }
 }

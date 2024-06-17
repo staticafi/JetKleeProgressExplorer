@@ -27,8 +27,10 @@ public class TreeViewer extends JPanel {
     private static final int nodeWidth = 100;
     private static final int nodeHeight = 50;
     private static final Color leftColor = Color.RED;
-    private static final Color rightColor = Color.BLUE;
+    private static final Color rightColor = new Color(34, 139, 34); // green
     private static final Color nodeColor = Color.BLACK;
+
+    private static final float edgeThickness = 2.0f;
 
     /**
      * Enables mouse dragging to navigate through the process tree displayed in the tree panel.
@@ -162,6 +164,7 @@ public class TreeViewer extends JPanel {
             Graphics2D g2d = (Graphics2D) g;
             g2d.setFont(font);
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setStroke(new BasicStroke(edgeThickness));
             drawSubTree(g2d, tree.root, getVisibleRect());
         }
     }

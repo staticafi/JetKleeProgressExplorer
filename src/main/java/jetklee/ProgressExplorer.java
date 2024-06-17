@@ -6,6 +6,10 @@ import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.nio.file.Paths;
+import java.util.Collections;
+
+import com.formdev.flatlaf.FlatLightLaf;
+import com.formdev.flatlaf.FlatDarkLaf;
 
 /**
  * Represents whole application. Initializes and updates UI components.
@@ -97,7 +101,16 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
              * command line argument.
              */
             public void run() {
-//                double startTime = System.currentTimeMillis();
+                double startTime = System.currentTimeMillis();
+
+                UIManager.put( "TabbedPane.selectedBackground", Color.white );
+                FlatLightLaf.setGlobalExtraDefaults( Collections.singletonMap( "@accentColor", "#228b22" ) );
+                try {
+                    UIManager.setLookAndFeel( new FlatLightLaf() );
+                } catch( Exception ex ) {
+                    System.err.println( "Failed to initialize LaF" );
+                }
+
                 JFrame frame = new JFrame("JetKlee: ProgressExplorer");
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.setPreferredSize(new Dimension(800, 600));
@@ -112,9 +125,9 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
                 frame.setVisible(true);
                 frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
 
-//                double totalTime = (System.currentTimeMillis() - startTime) / 1000.0f;
-//                String formattedTime = String.format("%.2f", totalTime);
-//                System.out.println(formattedTime);
+                double totalTime = (System.currentTimeMillis() - startTime) / 1000.0f;
+                String formattedTime = String.format("%.2f", totalTime);
+                System.out.println(formattedTime);
 //                System.exit(0);
             }
         });

@@ -47,6 +47,7 @@ public abstract class TextViewerBase extends JPanel {
             Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(color);
 
             highlighter.addHighlight(startOffset, endOffset, painter);
+//            highlighter.addHighlight(startOffset, endOffset, DefaultHighlighter.DefaultPainter);
         } catch (BadLocationException e) {
             // Nothing to do.
         }

@@ -13,6 +13,7 @@ import java.util.Map;
 public class ExecutionState {
     public static final int BYTES_INDENT = 12;
     public static final int OBJS_INDENT = 4;
+    public int nodeID;
 
     public record Location(String file, int line, int column, int assemblyLine) {
         @Override
@@ -86,7 +87,7 @@ public class ExecutionState {
     }
 
     public record Object(int objID, int segment, String name, String size, boolean isLocal, boolean isGlobal,
-                         boolean isFixed, boolean isUserSpecified, boolean isLazy, String symAddress) {
+                         boolean isFixed, boolean isUserSpec, boolean isLazy, String symAddress) {
         @Override
         public String toString() {
             return String.format(
@@ -97,31 +98,31 @@ public class ExecutionState {
                             "isLocal: %s, " +
                             "isGlobal: %s, " +
                             "isFixed: %s, " +
-                            "isUserSpecified: %s, " +
+                            "isUserSpec: %s, " +
                             "isLazy: %s, " +
                             "symAddress: %s",
-                    objID, segment, name, size, isLocal, isGlobal, isFixed, isUserSpecified, isLazy, symAddress
+                    objID, segment, name, size, isLocal, isGlobal, isFixed, isUserSpec, isLazy, symAddress
             );
         }
     }
 
-    public record Byte(int id, boolean concrete, boolean knownSym, boolean unflushed, String value) {
+    public record ByteGroup (boolean concrete, boolean knownSym, boolean unflushed, String value, ArrayList<Integer> indices) {
         @Override
         public String toString() {
             return String.format(
-                    "id: %d, " +
                             "concrete: %s, " +
                             "knownSym: %s, " +
                             "unflushed: %s, " +
-                            "value: %s",
-                    id, concrete, knownSym, unflushed, value
+                            "value: %s, " +
+                            "indices: %s",
+                    concrete, knownSym, unflushed, value, indices.toString()
             );
         }
     }
 
     public record Plane(Type type, int memoryObjectID, String rootObject, int sizeBound,
                         boolean initialized, boolean symbolic, int initialValue,
-                        Diff<Byte> bytes, LinkedHashMap<Integer, String> updates) {
+                        Diff<ByteGroup> bytes, LinkedHashMap<Integer, String> updates) {
         public enum Type {
             SEGMENT, OFFSET;
 
@@ -220,9 +221,9 @@ public class ExecutionState {
                     objectJSON.getInt("isLocal") == 1,
                     objectJSON.getInt("isGlobal") == 1,
                     objectJSON.getInt("isFixed") == 1,
-                    objectJSON.getInt("isUserSpecified") == 1,
-                    objectJSON.getInt("isLazyInitialized") == 1,
-                    objectJSON.getString("symbolicAddress")
+                    objectJSON.getInt("isUserSpec") == 1,
+                    objectJSON.getInt("isLazy") == 1,
+                    objectJSON.getString("symAddress")
             );
             objects.add(object);
         }
@@ -259,6 +260,7 @@ public class ExecutionState {
     }
 
     private Context parseContext(JSONObject data) {
+        nodeID = data.getInt("nodeID");
         Location location = getLocation(data, "location");
         Location nextLocation = getLocation(data, "nextLocation");
 
@@ -274,6 +276,7 @@ public class ExecutionState {
             );
             stack.add(stackLocation);
         }
+
 
         return new Context(
                 data.getInt("nodeID"),
@@ -303,25 +306,34 @@ public class ExecutionState {
         return constraints;
     }
 
-    private ArrayList<Byte> parseByte(JSONArray bytesJSON) {
-        ArrayList<Byte> bytes = new ArrayList<>();
+    private ArrayList<ByteGroup> parseByte(JSONArray bytesJSON) {
+        ArrayList<ByteGroup> bytes = new ArrayList<>();
         for (int i = 0; i < bytesJSON.length(); i++) {
-            JSONObject byteJSON = bytesJSON.getJSONObject(i);
-            Byte b = new Byte(
-                    byteJSON.getInt("byteID"),
-                    byteJSON.getInt("concrete") == 1,
-                    byteJSON.getInt("knownSym") == 1,
-                    byteJSON.getInt("unflushed") == 1,
-                    byteJSON.getString("value")
+            JSONArray byteJSON = bytesJSON.getJSONArray(i);
+
+            ArrayList<Integer> indices = new ArrayList<>();
+            JSONArray indicesJSON = byteJSON.getJSONArray(3);
+
+            // skip first element (value)
+            for (int j = 1; j < indicesJSON.length(); ++j) {
+                indices.add(indicesJSON.getInt(j));
+            }
+
+            ByteGroup b = new ByteGroup(
+                    byteJSON.getInt(0) == 1, // concrete
+                    byteJSON.getInt(1) == 1, // knownSym
+                    byteJSON.getInt(2) == 1, // unflushed
+                    byteJSON.getJSONArray(3).getString(0), //value
+                    indices
             );
             bytes.add(b);
         }
         return bytes;
     }
 
-    private Diff<Byte> parseBytes(JSONObject bytes) {
-        ArrayList<Byte> additions = new ArrayList<>();
-        ArrayList<Byte> deletions = new ArrayList<>();
+    private Diff<ByteGroup> parseBytes(JSONObject bytes) {
+        ArrayList<ByteGroup> additions = new ArrayList<>();
+        ArrayList<ByteGroup> deletions = new ArrayList<>();
 
         if (bytes.has("add")) {
             JSONArray additionsJSON = bytes.getJSONArray("add");
@@ -331,7 +343,6 @@ public class ExecutionState {
             JSONArray additionsJSON = bytes.getJSONArray("del");
             deletions = parseByte(additionsJSON);
         }
-
         return new Diff<>(additions, deletions, BYTES_INDENT);
     }
 
@@ -339,16 +350,23 @@ public class ExecutionState {
         JSONObject planeJSON = data.getJSONObject(Plane.Type.toString(type));
         if (planeJSON.isEmpty()) return null;
 
-        JSONObject bytesJSON = planeJSON.getJSONObject("bytes");
-        Diff<Byte> bytes = parseBytes(bytesJSON);
 
-        JSONArray updatesJSON = planeJSON.getJSONArray("updates");
+        Diff<ByteGroup> bytes = new Diff<>(new ArrayList<>(), new ArrayList<>(), BYTES_INDENT);
+
+        if (planeJSON.has("bytes")) {
+            JSONObject bytesJSON = planeJSON.getJSONObject("bytes");
+            bytes = parseBytes(bytesJSON);
+        }
+
         LinkedHashMap<Integer, String> updates = new LinkedHashMap<>();
-        for (int i = 0; i < updatesJSON.length(); ++i) {
-            JSONObject updateJSON = updatesJSON.getJSONObject(i);
-            String key = updateJSON.keys().next();
-            String value = updateJSON.getString(key);
-            updates.put(Integer.parseInt(key), value);
+        if (planeJSON.has("updates")) {
+            JSONArray updatesJSON = planeJSON.getJSONArray("updates");
+            for (int i = 0; i < updatesJSON.length(); ++i) {
+                JSONObject updateJSON = updatesJSON.getJSONObject(i);
+                String key = updateJSON.keys().next();
+                String value = updateJSON.getString(key);
+                updates.put(Integer.parseInt(key), value);
+            }
         }
 
         return new Plane(
@@ -362,5 +380,9 @@ public class ExecutionState {
                 bytes,
                 updates
         );
+    }
+
+    public void getCompleteMemory() {
+
     }
 }
