@@ -102,7 +102,7 @@ public class Tree {
             switch (action) {
                 case INSERT_NODE:
                     Node node = insertNode(actionJSON);
-                    node.executionState = new ExecutionState(actionJSON);
+                    node.executionState = new ExecutionState(actionJSON, node);
                     break;
                 case INSERT_EDGE:
                     insertEdge(actionJSON);

@@ -26,11 +26,12 @@ public class TreeViewer extends JPanel {
     private static final int nodeSeparatorVertical = 200;
     private static final int nodeWidth = 100;
     private static final int nodeHeight = 50;
-    private static final Color leftColor = Color.RED;
-    private static final Color rightColor = new Color(34, 139, 34); // green
+    public static final Color RED_COLOR = Color.RED;
+    public static final Color GREEN_COLOR = new Color(34, 139, 34);
+    public static final Color DEFAULT_COLOR = Color.WHITE;
     private static final Color nodeColor = Color.BLACK;
 
-    private static final float edgeThickness = 2.0f;
+    private static final float edgeThickness = 1.0f;
 
     /**
      * Enables mouse dragging to navigate through the process tree displayed in the tree panel.
@@ -104,7 +105,9 @@ public class TreeViewer extends JPanel {
             int rectX = Math.round(zoom * (node.viewProps.x - nodeWidth / 2));
             int rectY = Math.round(zoom * (node.viewProps.y - nodeHeight / 2));
             boolean isInNode = (rectX <= clickX && clickX <= rectX + zoom * nodeWidth) && (rectY <= clickY && clickY <= rectY + zoom * nodeHeight);
-            if (isVisibleNode(node, selectedRound) && isInNode) return node;
+            if (isVisibleNode(node, selectedRound) && isInNode) {
+                return node;
+            }
         }
         return null;
     }
@@ -252,11 +255,11 @@ public class TreeViewer extends JPanel {
         }
 
         if (node.left != null && isVisibleNode(node.left, selectedRound)) {
-            g2d.setColor(leftColor);
+            g2d.setColor(RED_COLOR);
             drawChild(g2d, node.left);
         }
         if (node.right != null && isVisibleNode(node.right, selectedRound)) {
-            g2d.setColor(rightColor);
+            g2d.setColor(GREEN_COLOR);
             drawChild(g2d, node.right);
         }
 

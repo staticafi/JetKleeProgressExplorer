@@ -34,7 +34,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
     private MemoryViewer memoryViewer;
     private ContextViewer contextViewer;
     private JPopupMenu rightClickMenu;
-    private int divider;
+    private float divider;
 
     public ProgressExplorer() {
         tree = new Tree();
@@ -48,7 +48,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         constraintsViewer = new ConstraintsViewer();
         memoryViewer = new MemoryViewer();
         contextViewer = new ContextViewer();
-        divider = 1000;
+        divider = 0.5f;
 
         treeScrollPane = new JScrollPane(treeViewer);
         treeScrollPane.setWheelScrollingEnabled(false);
@@ -78,8 +78,12 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         nodeInfoTabbedPane.setVisible(false);
 
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mainTabbedPane, nodeInfoTabbedPane);
+        splitPane.setResizeWeight(0.1);
+        splitPane.setDividerLocation(0.1);
+
         mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, roundScrollPane, splitPane);
-        mainSplitPane.setDividerLocation(50);
+        mainSplitPane.setResizeWeight(0.1);
+        mainSplitPane.setDividerLocation(0.1);
 
         rootPanel = new JPanel(new BorderLayout());
         rootPanel.add(mainSplitPane, BorderLayout.CENTER);
@@ -104,7 +108,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
                 double startTime = System.currentTimeMillis();
 
                 UIManager.put( "TabbedPane.selectedBackground", Color.white );
-                FlatLightLaf.setGlobalExtraDefaults( Collections.singletonMap( "@accentColor", "#228b22" ) );
+                FlatLightLaf.setGlobalExtraDefaults( Collections.singletonMap( "@accentColor", "#ADD8E6" ) );
                 try {
                     UIManager.setLookAndFeel( new FlatLightLaf() );
                 } catch( Exception ex ) {
@@ -216,7 +220,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         memoryViewer.displayMemory(node.executionState);
 
         nodeInfoTabbedPane.setVisible(true);
-        splitPane.setDividerLocation(divider);
+        splitPane.setDividerLocation(0.7);
         selectCodeLine(node, TabbedPane.TREE_PANE);
     }
 
@@ -246,7 +250,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         if (SwingUtilities.isRightMouseButton(e)) {
             if (nodeInfoTabbedPane.isVisible()) {
                 nodeInfoTabbedPane.setVisible(false);
-                divider = splitPane.getDividerLocation();
+//                divider = splitPane.getDividerLocation();
             }
             sourceC.removeHighLight();
             sourceLL.removeHighLight();
