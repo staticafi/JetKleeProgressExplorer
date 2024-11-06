@@ -13,12 +13,16 @@ import java.util.*;
 public class Tree {
     public Node root;
     public HashMap<Integer, Node> nodes;
+    public HashMap<Integer, NodeMemory.Memory> memory;
     public List<String> rounds;
     public int roundCounter;
+    private static final String treeDir = "Tree";
+    private static final String memoryDir = "Memory";
 
     public Tree() {
         root = null;
         nodes = new HashMap<>();
+        memory = new HashMap<>();
         rounds = new ArrayList<>();
         roundCounter = 0;
     }
@@ -29,15 +33,36 @@ public class Tree {
      * @param dir directory with json files.
      * @throws Exception thrown if file can't be loaded.
      */
-    public void load(Path dir) throws Exception {
+    public void load(String dir) throws Exception {
+        loadTree(Paths.get(dir, treeDir));
+        loadMemory(Paths.get(dir, memoryDir));
+    }
+
+    private void loadMemory(Path dir) throws Exception {
+        // TODO rewrite to for each and separate function
         Files.list(dir)
                 .filter(Files::isRegularFile)
                 .filter(path -> path.getFileName().toString().endsWith(".json"))
                 .sorted(Comparator.comparingInt(this::pathToInt))
                 .forEach(file -> {
                     try {
-                        System.out.println("Loading file: " + file.getFileName().toString());
-                        loadFile(file);
+                        System.out.println("Loading Memory file: " + file.getFileName().toString());
+                        loadMemoryFile(file);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+    }
+
+    private void loadTree(Path dir) throws Exception {
+        Files.list(dir)
+                .filter(Files::isRegularFile)
+                .filter(path -> path.getFileName().toString().endsWith(".json"))
+                .sorted(Comparator.comparingInt(this::pathToInt))
+                .forEach(file -> {
+                    try {
+                        System.out.println("Loading Tree file: " + file.getFileName().toString());
+                        loadTreeFile(file);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -47,8 +72,8 @@ public class Tree {
 
         // set endRound for nodes without EraseNode action
         for (Node node : nodes.values()) {
-            if (node.endRound == 0) {
-                node.endRound = roundCounter;
+            if (node.getEndRound() == 0) {
+                node.setEndRound(roundCounter);
             }
         }
     }
@@ -64,17 +89,37 @@ public class Tree {
      * Corresponds to action in json files.
      */
     private enum Action {
-        INSERT_NODE, INSERT_EDGE, ERASE_NODE;
+        INSERT_NODE, INSERT_MEMORY, INSERT_EDGE, ERASE_NODE;
 
         private static Action parse(String actionStr) throws Exception {
             return switch (actionStr) {
                 case "InsertNode" -> INSERT_NODE;
                 case "InsertEdge" -> INSERT_EDGE;
+                case "InsertMemory" -> INSERT_MEMORY;
                 case "EraseNode" -> ERASE_NODE;
                 default -> throw new Exception("Unknown tree action: " + actionStr);
             };
         }
 
+    }
+
+    private void loadMemoryFile(Path filePath) throws Exception {
+        String fileContent;
+
+        try {
+            fileContent = new String(Files.readAllBytes(filePath));
+        } catch (IOException e) {
+            System.out.println("Unable to read file: " + filePath);
+            return;
+        }
+        JSONObject actionJSON = new JSONObject(fileContent);
+
+        String actionStr = actionJSON.getString("action");
+        Action action = Action.parse(actionStr);
+
+        if (Objects.requireNonNull(action) == Action.INSERT_MEMORY) {
+            insertMemory(actionJSON);
+        }
     }
 
     /**
@@ -83,7 +128,7 @@ public class Tree {
      * @param filePath of the json file.
      * @throws Exception thrown if the action is unknown.
      */
-    private void loadFile(Path filePath) throws Exception {
+    private void loadTreeFile(Path filePath) throws Exception {
         String fileContent;
 
         try {
@@ -101,8 +146,7 @@ public class Tree {
 
             switch (action) {
                 case INSERT_NODE:
-                    Node node = insertNode(actionJSON);
-                    node.executionState = new ExecutionState(actionJSON, node);
+                    insertNode(actionJSON);
                     break;
                 case INSERT_EDGE:
                     insertEdge(actionJSON);
@@ -114,14 +158,23 @@ public class Tree {
         }
     }
 
-    private Node insertNode(JSONObject actionJSON) {
+    private void insertNode(JSONObject actionJSON) {
         int nodeID = actionJSON.getInt("nodeID");
+        boolean isUnique = actionJSON.getInt("uniqueState") == 1;
 
         Node node = new Node(nodeID);
-        node.startRound = roundCounter;
+        node.setStartRound(roundCounter);
         if (nodeID == 1) root = node;
         nodes.put(nodeID, node);
-        return node;
+
+        node.setInfo(new NodeInfo(actionJSON));
+        node.setMemoryId(isUnique ? nodeID : nodeID - 1);
+    }
+
+    private void insertMemory(JSONObject actionJSON) {
+        int memoryId = actionJSON.getInt("nodeID");
+        NodeMemory m = new NodeMemory(actionJSON, memoryId);
+        memory.put(memoryId, m.getMemory());
     }
 
     private void insertEdge(JSONObject actionJSON) {
@@ -132,16 +185,16 @@ public class Tree {
         Node parent = nodes.get(parentID);
         Node child = nodes.get(childID);
 
-        if (parent.left == null)
-            parent.left = child;
+        if (parent.getLeft() == null)
+            parent.setLeft(child);
         else
-            parent.right = child;
-        child.parent = parent;
+            parent.setRight(child);
+        child.setParent(parent);
     }
 
     private void eraseNode(JSONObject actionJSON) {
         int nodeID = actionJSON.getInt("nodeID");
         Node node = nodes.get(nodeID);
-        node.endRound = roundCounter;
+        node.setEndRound(roundCounter);
     }
 }

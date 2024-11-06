@@ -179,7 +179,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
      */
     private void load(String dir) {
         try {
-            tree.load(Paths.get(dir));
+            tree.load(dir);
             sourceLoader.load(dir);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(rootPanel, "Load has FAILED: " + e);
@@ -204,8 +204,8 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
      */
     private void selectCodeLine(Node node, TabbedPane pane) {
         mainTabbedPane.setSelectedIndex(pane.ordinal());
-        sourceC.selectCodeLine(node.executionState.context.location().line());
-        sourceLL.selectCodeLine(node.executionState.context.location().assemblyLine());
+        sourceC.selectCodeLine(node.getInfo().getContext().location().line());
+        sourceLL.selectCodeLine(node.getInfo().getContext().location().assemblyLine());
     }
 
     /**
@@ -215,9 +215,9 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
      * @param node the node for which information is displayed.
      */
     private void displayNodeInfoPane(Node node) {
-        contextViewer.displayContext(node.executionState);
-        constraintsViewer.displayConstraints(node.executionState);
-        memoryViewer.displayMemory(node.executionState);
+        contextViewer.displayContext(node.getInfo());
+        constraintsViewer.displayConstraints(node.getInfo());
+        memoryViewer.displayMemory(tree.memory.get(node.getMemoryId()));
 
         nodeInfoTabbedPane.setVisible(true);
         splitPane.setDividerLocation(0.7);

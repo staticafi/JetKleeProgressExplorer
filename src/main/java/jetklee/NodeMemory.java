@@ -9,53 +9,9 @@ import java.util.LinkedHashMap;
 /**
  * Parses and holds information about execution state of the process tree
  */
-public class ExecutionState {
-    public record Location(String file, int line, int column, int assemblyLine) {
-        @Override
-        public String toString() {
-            return String.format(
-                    "\n    file: %s\n" +
-                            "    line: %d\n" +
-                            "    column: %d\n" +
-                            "    assemblyLine: %d",
-                    file, line, column, assemblyLine
-            );
-        }
-    }
+public class NodeMemory {
+    // TODO presunut nondet values do context
 
-    public record Context(int nodeID, int stateID, boolean uniqueState, int parentID, int parentJSON, Location location,
-                          Location nextLocation, int incomingBBIndex, int depth,
-                          boolean coveredNew,
-                          boolean forkDisabled, int instsSinceCovNew, int nextID, int steppedInstructions,
-                          ArrayList<Location> stack) {
-        @Override
-        public String toString() {
-            StringBuilder stackStr = new StringBuilder();
-            for (Location stackLocation : stack) {
-                stackStr.append(stackLocation.toString());
-                stackStr.append("\n");
-            }
-            return String.format(
-                    "nodeID: %d\n" +
-                            "stateID: %d\n" +
-                            "uniqueState: %s\n" +
-                            "parentID: %d\n" +
-                            "parentJSON: %d\n" +
-                            "location: %s\n" +
-                            "nextLocation: %s\n" +
-                            "incomingBBIndex: %d\n" +
-                            "depth: %d\n" +
-                            "coveredNew: %s\n" +
-                            "forkDisabled: %s\n" +
-                            "instsSinceCovNew: %d\n" +
-                            "nextID: %d\n" +
-                            "steppedInstructions: %d\n" +
-                            "stack: %s",
-                    nodeID, stateID, uniqueState, parentID, parentJSON, location.toString(), nextLocation.toString(),
-                    incomingBBIndex, depth, coveredNew, forkDisabled, instsSinceCovNew, nextID, steppedInstructions, stackStr
-            );
-        }
-    }
 
     public record Diff<T>(ArrayList<T> additions, ArrayList<T> deletions) {
     }
@@ -104,20 +60,17 @@ public class ExecutionState {
     public record Deletion(int objID, OperationType type) {
     }
 
-    public Context context;
-    public ArrayList<String> constraints;
 
-    public Memory memory;
-    public Node node;
+    private Memory memory;
+
+    private int id;
 
     /**
      * @param data information about one execution state
      */
-    public ExecutionState(JSONObject data, Node node_) {
-        context = parseContext(data);
-        constraints = parseConstraints(data);
-        memory = parseMemory(data);
-        node = node_;
+    public NodeMemory(JSONObject data, int id) {
+        this.memory = parseMemory(data);
+        this.id = id;
     }
 
     private Memory parseMemory(JSONObject data) {
@@ -256,59 +209,11 @@ public class ExecutionState {
         );
     }
 
-    private Location getLocation(JSONObject data, String location) {
-        JSONArray locationJSON = data.getJSONArray(location);
-        return new Location(
-                locationJSON.getString(0),
-                locationJSON.getInt(1),
-                locationJSON.getInt(2),
-                locationJSON.getInt(3)
-        );
+    public Memory getMemory() {
+        return memory;
     }
 
-    private Context parseContext(JSONObject data) {
-        Location location = getLocation(data, "location");
-        Location nextLocation = getLocation(data, "nextLocation");
-
-        JSONArray stackJSON = data.getJSONArray("stack");
-        ArrayList<Location> stack = new ArrayList<>();
-        for (int i = 0; i < stackJSON.length(); i++) {
-            JSONArray stackLocationJSON = stackJSON.getJSONArray(i);
-            Location stackLocation = new Location(
-                    stackLocationJSON.getString(0),
-                    stackLocationJSON.getInt(1),
-                    stackLocationJSON.getInt(2),
-                    stackLocationJSON.getInt(3)
-            );
-            stack.add(stackLocation);
-        }
-
-
-        return new Context(
-                data.getInt("nodeID"),
-                data.getInt("stateID"),
-                data.getInt("uniqueState") == 1,
-                data.getInt("parentID"),
-                data.getInt("parentJSON"),
-                location,
-                nextLocation,
-                data.getInt("incomingBBIndex"),
-                data.getInt("depth"),
-                data.getInt("coveredNew") == 1,
-                data.getInt("forkDisabled") == 1,
-                data.getInt("instsSinceCovNew"),
-                data.getInt("nextID"),
-                data.getInt("steppedInstructions"),
-                stack
-        );
-    }
-
-    private ArrayList<String> parseConstraints(JSONObject data) {
-        constraints = new ArrayList<>();
-        JSONArray constraintsJSON = data.getJSONArray("constraints");
-        for (int i = 0; i < constraintsJSON.length(); i++) {
-            constraints.add(constraintsJSON.get(i).toString());
-        }
-        return constraints;
+    public int getId() {
+        return id;
     }
 }

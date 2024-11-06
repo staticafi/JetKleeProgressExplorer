@@ -14,7 +14,7 @@ import java.util.ArrayList;
  */
 public class MemoryViewer extends JPanel implements ListSelectionListener {
     public JButton showAllButton;
-    private ExecutionState currentState = null;
+    private NodeMemory.Memory currentMemory;
     private boolean showAll = false;
 
     private JList<String> objectsList;
@@ -25,13 +25,12 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
     private PlanePanel offsetPanel;
     private JPanel objectInfoPanel;
     private JSplitPane planesSplitPane;
-    private ArrayList<ExecutionState.ObjectState> objects = new ArrayList<>();
+    private ArrayList<NodeMemory.ObjectState> objects = new ArrayList<>();
 
     public MemoryViewer() {
         super(new BorderLayout());
         showAllButton = new JButton("Show All");
         showAllButton.setPreferredSize(new Dimension(75, 25));
-
         showAllButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -67,21 +66,20 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         objectsList.setBorder(new TitledBorder("Objects"));
         objectsList.addListSelectionListener(this);
         objectsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        objectsList.setCellRenderer(new CustomListCellRenderer(objects));
+        objectsList.setCellRenderer(new CustomListCellRenderer(objects, new ArrayList<>()));
 
         objectScrollPane = new JScrollPane(objectsList);
         objectsPanel.add(objectScrollPane, BorderLayout.CENTER);
 
-        // TODO Enttry field
-//        entryField.addActionListener(e -> {
-//            String input = entryField.getText();
-//            try {
-//                int number = Integer.parseInt(input);
-//                objectsList.setSelectedIndex(number);
-//            } catch (NumberFormatException ex) {
+        entryField.addActionListener(e -> {
+            String input = entryField.getText();
+            try {
+                int number = Integer.parseInt(input);
+                objectsList.setSelectedIndex(number);
+            } catch (NumberFormatException ex) {
 //                entryField.setText("Please enter a number");
-//            }
-//        });
+            }
+        });
 
         objectsPanel.add(entryField, BorderLayout.NORTH);
 
@@ -101,26 +99,32 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
     }
 
 
-    public void displayMemory(ExecutionState executionState) {
-        currentState = executionState;
+    public void displayMemory(NodeMemory.Memory memory) {
+        segmentPanel.updateTables(null);
+        offsetPanel.updateTables(null);
+
+        currentMemory = memory;
+
+        // TODO vypisat, ze nebol najdeny JSON pre tento node (moze sa stat pri timeoute)dd
+        if (currentMemory == null) {
+            currentMemory = new NodeMemory.Memory(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+        }
 
         objects = new ArrayList<>();
-        objects.addAll(currentState.memory.additions());
-        objects.addAll(currentState.memory.changes());
+        objects.addAll(currentMemory.additions());
+        objects.addAll(currentMemory.changes());
 
-        ((CustomListCellRenderer) objectsList.getCellRenderer()).updateObjectList(objects);
+        ((CustomListCellRenderer) objectsList.getCellRenderer()).updateObjectList(objects, currentMemory.deletions());
         ((DefaultListModel<String>) objectsList.getModel()).clear();
 
-        for (ExecutionState.ObjectState object : objects)
+        for (NodeMemory.ObjectState object : objects)
             ((DefaultListModel<String>) objectsList.getModel()).addElement(String.valueOf(object.objID()));
 
-        for (ExecutionState.Deletion deletion : currentState.memory.deletions()) {
+        for (NodeMemory.Deletion deletion : currentMemory.deletions()) {
             ((DefaultListModel<String>) objectsList.getModel()).addElement(String.valueOf(deletion.objID()));
         }
 
         if (objects.isEmpty()) {
-            segmentPanel.updateTables(null);
-            offsetPanel.updateTables(null);
             return;
         }
 
@@ -129,21 +133,38 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
     }
 
     private void updatePlanes() {
+        if (objectsList.getModel().getSize() == 0) {
+            segmentPanel.updateTables(null);
+            offsetPanel.updateTables(null);
+            return;
+        }
+
         int selected = Integer.parseInt(objectsList.getSelectedValue());
 
-        if (currentState.memory.deletions().contains(selected)) {
+        boolean isDeletion = currentMemory.deletions().stream()
+                .anyMatch(deletion -> deletion.objID() == selected);
+
+        if (isDeletion) {
+            segmentPanel.updateTables(null);
+            offsetPanel.updateTables(null);
+            handleDeletionClick(selected);
+            return;
+        }
+
+        NodeMemory.ObjectState currentObjectState = objects.stream()
+                .filter(obj -> obj.objID() == selected)
+                .findFirst()
+                .orElse(null);
+
+        if (currentObjectState != null) {
+            NodeMemory.Plane offsetPlane = currentObjectState.offsetPlane();
+            NodeMemory.Plane segmentPlane = currentObjectState.segmentPlane();
+            segmentPanel.updateTables(segmentPlane);
+            offsetPanel.updateTables(offsetPlane);
+        } else {
             segmentPanel.updateTables(null);
             offsetPanel.updateTables(null);
         }
-        ExecutionState.ObjectState currentObjectState = objects.stream()
-                .filter(obj -> obj.objID() == selected)
-                .findFirst()
-                .get();
-
-        ExecutionState.Plane offsetPlane = currentObjectState.offsetPlane();
-        ExecutionState.Plane segmentPlane = currentObjectState.segmentPlane();
-        segmentPanel.updateTables(segmentPlane);
-        offsetPanel.updateTables(offsetPlane);
     }
 
     @Override
@@ -152,6 +173,23 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         if (objectsList.getValueIsAdjusting()) return;
         if (objectsList.getSelectedIndex() < 0) return;
 
-        updatePlanes();
+        // remove table headers for empty tables
+        segmentPanel.updateTables(null);
+        offsetPanel.updateTables(null);
+
+        int selectedID = Integer.parseInt(objectsList.getSelectedValue());
+
+        boolean isDeletion = currentMemory.deletions().stream()
+                .anyMatch(deletion -> deletion.objID() == selectedID);
+
+        if (isDeletion) {
+            handleDeletionClick(selectedID);
+        } else {
+            updatePlanes();
+        }
+    }
+
+    private void handleDeletionClick(int objID) {
+        System.out.println("Deletion clicked: " + objID);
     }
 }

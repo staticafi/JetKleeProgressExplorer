@@ -4,11 +4,13 @@ import javax.swing.*;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Map;
+import java.util.Comparator;
 
 import static jetklee.TreeViewer.*;
 
 public class PlanePanel extends JPanel {
+    private NodeMemory.Plane currentPlane;
+    private JCheckBox sortByOffsetCheckBox;
     private JPanel bytePanel;
     private JPanel updatePanel;
 
@@ -18,107 +20,177 @@ public class PlanePanel extends JPanel {
         super(new BorderLayout());
         JTabbedPane offsetTabbedPane = new JTabbedPane(JTabbedPane.TOP);
 
+        sortByOffsetCheckBox = new JCheckBox("Sort by Offset");
+        sortByOffsetCheckBox.setSelected(false);
+        sortByOffsetCheckBox.addActionListener(e -> updateTables(currentPlane));
+
+        JPanel controlPanel = new JPanel(new BorderLayout());
+        controlPanel.add(sortByOffsetCheckBox, BorderLayout.NORTH);
+
         bytePanel = new JPanel(new BorderLayout());
-//        Object[][] byteData = {};
-//        JTable byteTable = new JTable(byteData, byteColumns);
-//        JScrollPane scrollPane = new JScrollPane(byteTable);
-//        bytePanel.add(scrollPane);
 
         updatePanel = new JPanel(new BorderLayout());
 
         offsetTabbedPane.addTab("Bytes", bytePanel);
         offsetTabbedPane.addTab("Updates", updatePanel);
-        this.add(offsetTabbedPane, BorderLayout.CENTER);
+
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, controlPanel, offsetTabbedPane);
+        this.add(splitPane, BorderLayout.CENTER);
     }
 
-    private void updateBytesTable(ExecutionState.Plane plane) {
-        // TODO bytes in consecutive order and save if byte is added or deleted
+    private void clearTable(JPanel panel) {
+        panel.removeAll();
+        JLabel emptyLabel = new JLabel("Empty");
+        emptyLabel.setForeground(Color.GRAY);
+        emptyLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        emptyLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
 
-        if (plane == null) {
-            bytePanel.removeAll();
-            bytePanel.revalidate();
-            bytePanel.repaint();
+        panel.setLayout(new BorderLayout());
+        panel.add(emptyLabel);
+        panel.revalidate();
+        panel.repaint();
+    }
+
+    private void updateBytesTable(NodeMemory.Plane plane) {
+        assert plane != null;
+
+        if (plane.bytes().additions().isEmpty() && plane.bytes().deletions().isEmpty()) {
+            clearTable(bytePanel);
             return;
         }
 
-        ArrayList<ExecutionState.ByteGroup> bytes = new ArrayList<>();
-        bytes.addAll(plane.bytes().additions());
-        bytes.addAll(plane.bytes().deletions());
+        ArrayList<NodeMemory.ByteGroup> byteGroups = new ArrayList<>();
+        byteGroups.addAll(plane.bytes().additions());
+        byteGroups.addAll(plane.bytes().deletions());
 
-        int totalSize = 0;
-        for (ExecutionState.ByteGroup bg : bytes) {
-            totalSize += bg.indices().size();
-        }
+        ArrayList<Object[]> byteEntries = new ArrayList<>();
+        ArrayList<Color> rowColors = new ArrayList<>();
 
-        Object[][] byteData = new Object[totalSize][byteColumns.length];
-        Color[] rowColors = new Color[totalSize];
-
-        int row = 0;
-        for (ExecutionState.ByteGroup bg : bytes) {
+        for (NodeMemory.ByteGroup bg : byteGroups) {
             for (int index : bg.indices()) {
-                byteData[row][0] = index;
-                byteData[row][1] = bg.value();
-                byteData[row][2] = bg.concrete();
-                byteData[row][3] = bg.knownSym();
-                byteData[row][4] = bg.unflushed();
+                Object[] byteData = new Object[byteColumns.length];
+                byteData[0] = index;
+                byteData[1] = bg.value();
+                byteData[2] = bg.concrete();
+                byteData[3] = bg.knownSym();
+                byteData[4] = bg.unflushed();
 
-                rowColors[row] = bg.isAddition() ? GREEN_COLOR : RED_COLOR;
-                ++row;
+                byteEntries.add(byteData);
+                rowColors.add(bg.isAddition() ? GREEN_COLOR : RED_COLOR);
             }
         }
 
-        JTable byteTable = new JTable(byteData, byteColumns) {
+        if (sortByOffsetCheckBox.isSelected()) {
+            ArrayList<Integer> indices = new ArrayList<>();
+            for (Object[] entry : byteEntries) {
+                indices.add((Integer) entry[0]);
+            }
 
+            ArrayList<Integer> sortedIndices = new ArrayList<>(indices);
+            sortedIndices.sort(Integer::compareTo);
+
+            ArrayList<Object[]> sortedByteEntries = new ArrayList<>();
+            ArrayList<Color> sortedRowColors = new ArrayList<>();
+
+            for (Integer sortedIndex : sortedIndices) {
+                int originalPosition = indices.indexOf(sortedIndex);
+                sortedByteEntries.add(byteEntries.get(originalPosition));
+                sortedRowColors.add(rowColors.get(originalPosition));
+                indices.set(originalPosition, null);
+            }
+
+            byteEntries = sortedByteEntries;
+            rowColors = sortedRowColors;
+        }
+
+        Object[][] byteDataArray = new Object[byteEntries.size()][byteColumns.length];
+        Color[] rowColorsArray = new Color[byteEntries.size()];
+
+        for (int i = 0; i < byteEntries.size(); i++) {
+            byteDataArray[i] = byteEntries.get(i);
+            rowColorsArray[i] = rowColors.get(i);
+        }
+
+        JTable byteTable = new JTable(byteDataArray, byteColumns) {
             @Override
             public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
                 Component c = super.prepareRenderer(renderer, row, column);
-                c.setBackground(rowColors[row]);
+                c.setBackground(rowColorsArray[row]);
                 return c;
             }
         };
+
         bytePanel.removeAll();
         bytePanel.add(new JScrollPane(byteTable));
         bytePanel.revalidate();
         bytePanel.repaint();
     }
 
-    private void updateUpdatesTable(ExecutionState.Plane plane) {
-        if (plane == null) {
-            updatePanel.removeAll();
-            updatePanel.revalidate();
-            updatePanel.repaint();
+    private boolean isNumeric(String str) {
+        try {
+            Integer.parseInt(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private void updateUpdatesTable(NodeMemory.Plane plane) {
+        assert plane != null;
+
+        if (plane.updates().isEmpty()) {
+            clearTable(updatePanel);
             return;
         }
 
-        Object[][] updateData = new Object[plane.updates().size()][2];
-        Color[] rowColors = new Color[plane.updates().size()];
+        ArrayList<Object[]> updateEntries = new ArrayList<>();
+        ArrayList<String> updates = new ArrayList<>(plane.updates().keySet());
 
-        int row = 0;
-        for (Map.Entry<String, String> update : plane.updates().entrySet()) {
-            updateData[row][0] = update.getKey();
-            updateData[row][1] = update.getValue();
+        ArrayList<Object[]> numericUpdates = new ArrayList<>();
+        ArrayList<Object[]> stringUpdates = new ArrayList<>();
 
-            rowColors[row] = GREEN_COLOR;
-            ++row;
+        for (String key : updates) {
+            Object[] updateEntry = new Object[2];
+            updateEntry[0] = key;  // offset
+            updateEntry[1] = plane.updates().get(key);  // value
+
+            if (isNumeric(key)) {
+                numericUpdates.add(updateEntry);
+            } else {
+                stringUpdates.add(updateEntry);
+            }
         }
 
-        JTable updateTable = new JTable(updateData, new String[]{"offset", "value"}) {
+        if (sortByOffsetCheckBox.isSelected()) {
+            numericUpdates.sort(Comparator.comparingInt(entry -> Integer.parseInt((String) entry[0]))
+            );
+        }
 
-            @Override
-            public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
-                Component c = super.prepareRenderer(renderer, row, column);
-                c.setBackground(rowColors[row]);
-                return c;
-            }
-        };
+        updateEntries.addAll(numericUpdates);
+        updateEntries.addAll(stringUpdates);
+
+        Object[][] updateDataArray = new Object[updateEntries.size()][2];
+        for (int i = 0; i < updateEntries.size(); i++) {
+            updateDataArray[i] = updateEntries.get(i);
+        }
+
+        JTable updateTable = new JTable(updateDataArray, new String[]{"Offset", "Value"});
+
         updatePanel.removeAll();
-        updatePanel.add(new JScrollPane(updateTable));
+        updatePanel.add(new JScrollPane(updateTable), BorderLayout.CENTER);
         updatePanel.revalidate();
         updatePanel.repaint();
     }
 
-    public void updateTables(ExecutionState.Plane plane) {
-        updateBytesTable(plane);
-        updateUpdatesTable(plane);
+    public void updateTables(NodeMemory.Plane plane) {
+        if (plane == null) {
+            clearTable(updatePanel);
+            clearTable(bytePanel);
+            return;
+        }
+
+        this.currentPlane = plane;
+        updateBytesTable(currentPlane);
+        updateUpdatesTable(currentPlane);
     }
 }

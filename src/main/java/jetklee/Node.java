@@ -12,15 +12,15 @@ public class Node {
         int subTreeMaxX = 0;
     }
 
-    public int startRound;
-    public int endRound;
-    public Node parent;
-    public Node left;
-    public Node right;
-    public int id;
-    ViewProps viewProps;
-    public ExecutionState executionState;
-
+    private ViewProps viewProps;
+    private int startRound;
+    private int endRound;
+    private Node parent;
+    private Node left;
+    private Node right;
+    private int id;
+    private int memoryId;
+    private NodeInfo info;
     /**
      * @param id_ unique node id
      */
@@ -36,5 +36,77 @@ public class Node {
 
     public boolean isRoot() {
         return parent == null;
+    }
+
+    public ViewProps getViewProps() {
+        return viewProps;
+    }
+
+    public int getStartRound() {
+        return startRound;
+    }
+
+    public int getEndRound() {
+        return endRound;
+    }
+
+    public Node getParent() {
+        return parent;
+    }
+
+    public Node getLeft() {
+        return left;
+    }
+
+    public Node getRight() {
+        return right;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public int getMemoryId() {
+        return memoryId;
+    }
+
+    public NodeInfo getInfo() {
+        return info;
+    }
+
+    public void setViewProps(ViewProps viewProps) {
+        this.viewProps = viewProps;
+    }
+
+    public void setStartRound(int startRound) {
+        this.startRound = startRound;
+    }
+
+    public void setEndRound(int endRound) {
+        this.endRound = endRound;
+    }
+
+    public void setParent(Node parent) {
+        this.parent = parent;
+    }
+
+    public void setLeft(Node left) {
+        this.left = left;
+    }
+
+    public void setRight(Node right) {
+        this.right = right;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setMemoryId(int memoryId) {
+        this.memoryId = memoryId;
+    }
+
+    public void setInfo(NodeInfo info) {
+        this.info = info;
     }
 }

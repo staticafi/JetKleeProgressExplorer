@@ -102,8 +102,8 @@ public class TreeViewer extends JPanel {
      */
     public Node onMouseClicked(int clickX, int clickY) {
         for (Node node : tree.nodes.values()) {
-            int rectX = Math.round(zoom * (node.viewProps.x - nodeWidth / 2));
-            int rectY = Math.round(zoom * (node.viewProps.y - nodeHeight / 2));
+            int rectX = Math.round(zoom * (node.getViewProps().x - nodeWidth / 2));
+            int rectY = Math.round(zoom * (node.getViewProps().y - nodeHeight / 2));
             boolean isInNode = (rectX <= clickX && clickX <= rectX + zoom * nodeWidth) && (rectY <= clickY && clickY <= rectY + zoom * nodeHeight);
             if (isVisibleNode(node, selectedRound) && isInNode) {
                 return node;
@@ -134,8 +134,8 @@ public class TreeViewer extends JPanel {
             public void run() {
                 if (tree != null && tree.root != null) {
                     Rectangle rect = new Rectangle(getVisibleRect());
-                    rect.x = tree.root.viewProps.x + nodeWidth / 2 - (int) rect.getWidth() / 2;
-                    rect.y = tree.root.viewProps.y + nodeHeight / 2 - (int) rect.getHeight() / 2;
+                    rect.x = tree.root.getViewProps().x + nodeWidth / 2 - (int) rect.getWidth() / 2;
+                    rect.y = tree.root.getViewProps().y + nodeHeight / 2 - (int) rect.getHeight() / 2;
                     scrollRectToVisible(rect);
                 }
             }
@@ -181,20 +181,20 @@ public class TreeViewer extends JPanel {
      * @return the minimum x-coordinate in the subtree.
      */
     private int computeNodeLocations(Node node, int minX, int depth) {
-        if (node.left != null && node.right != null) {
-            minX = Math.max(minX, computeNodeLocations(node.left, minX, depth + 1));
-            minX = Math.max(minX, computeNodeLocations(node.right, minX + nodeWidth + nodeSeparatorHorizontal, depth + 1));
-            node.viewProps.x = (node.left.viewProps.x + node.right.viewProps.x) / 2;
+        if (node.getLeft() != null && node.getRight() != null) {
+            minX = Math.max(minX, computeNodeLocations(node.getLeft(), minX, depth + 1));
+            minX = Math.max(minX, computeNodeLocations(node.getRight(), minX + nodeWidth + nodeSeparatorHorizontal, depth + 1));
+            node.getViewProps().x = (node.getLeft().getViewProps().x + node.getRight().getViewProps().x) / 2;
 
-            node.viewProps.subTreeMinX = node.left.viewProps.subTreeMinX;
-            node.viewProps.subTreeMaxX = node.right.viewProps.subTreeMaxX;
+            node.getViewProps().subTreeMinX = node.getLeft().getViewProps().subTreeMinX;
+            node.getViewProps().subTreeMaxX = node.getRight().getViewProps().subTreeMaxX;
         } else {
-            node.viewProps.x = minX;
-            node.viewProps.subTreeMinX = minX - nodeWidth / 2 - nodeSeparatorHorizontal / 2;
-            node.viewProps.subTreeMaxX = minX + nodeWidth / 2 + nodeSeparatorHorizontal / 2;
+            node.getViewProps().x = minX;
+            node.getViewProps().subTreeMinX = minX - nodeWidth / 2 - nodeSeparatorHorizontal / 2;
+            node.getViewProps().subTreeMaxX = minX + nodeWidth / 2 + nodeSeparatorHorizontal / 2;
         }
 
-        node.viewProps.y = borderSize + depth * (nodeHeight + nodeSeparatorVertical);
+        node.getViewProps().y = borderSize + depth * (nodeHeight + nodeSeparatorVertical);
         return minX;
     }
 
@@ -208,23 +208,23 @@ public class TreeViewer extends JPanel {
     private void computeAreas(Node node, int round, Dimension area) {
         if (node == null || !isVisibleNode(node, round)) return;
 
-        computeAreas(node.left, round, area);
-        computeAreas(node.right, round, area);
+        computeAreas(node.getLeft(), round, area);
+        computeAreas(node.getRight(), round, area);
 
-        area.width = Math.max(area.width, node.viewProps.x + nodeWidth / 2);
-        area.height = Math.max(area.height, node.viewProps.y + nodeHeight / 2);
+        area.width = Math.max(area.width, node.getViewProps().x + nodeWidth / 2);
+        area.height = Math.max(area.height, node.getViewProps().y + nodeHeight / 2);
     }
 
     private boolean isVisibleNode(Node node, int round) {
-        return node.startRound <= round && round < node.endRound;
+        return node.getStartRound() <= round && round < node.getEndRound();
     }
 
     private void drawChild(Graphics2D g2d, Node child) {
         g2d.drawLine(
-                Math.round(zoom * child.parent.viewProps.x),
-                Math.round(zoom * (child.parent.viewProps.y + nodeHeight / 2)),
-                Math.round(zoom * child.viewProps.x),
-                Math.round(zoom * (child.viewProps.y - nodeHeight / 2))
+                Math.round(zoom * child.getParent().getViewProps().x),
+                Math.round(zoom * (child.getParent().getViewProps().y + nodeHeight / 2)),
+                Math.round(zoom * child.getViewProps().x),
+                Math.round(zoom * (child.getViewProps().y - nodeHeight / 2))
         );
         drawSubTree(g2d, child, getVisibleRect());
     }
@@ -239,43 +239,43 @@ public class TreeViewer extends JPanel {
     private void drawSubTree(Graphics2D g2d, Node node, Rectangle visibleRect) {
         if (!isVisibleNode(node, selectedRound)) return;
         // whole subtree on left or right side of the visible rectangle
-        if (zoom * node.viewProps.subTreeMinX > visibleRect.x + visibleRect.width || zoom * node.viewProps.subTreeMaxX < visibleRect.x)
+        if (zoom * node.getViewProps().subTreeMinX > visibleRect.x + visibleRect.width || zoom * node.getViewProps().subTreeMaxX < visibleRect.x)
             return;
         // whole subtree under the visible rectangle
-        if (zoom * (node.viewProps.y - nodeHeight / 2) > visibleRect.y + visibleRect.height)
+        if (zoom * (node.getViewProps().y - nodeHeight / 2) > visibleRect.y + visibleRect.height)
             return;
         // node above the visible rectangle
-        if (zoom * (node.viewProps.y + nodeHeight + nodeSeparatorVertical) < visibleRect.y) {
+        if (zoom * (node.getViewProps().y + nodeHeight + nodeSeparatorVertical) < visibleRect.y) {
             // decide for children
-            if (node.left != null && isVisibleNode(node.left, selectedRound))
-                drawSubTree(g2d, node.left, getVisibleRect());
-            if (node.right != null && isVisibleNode(node.right, selectedRound))
-                drawSubTree(g2d, node.right, getVisibleRect());
+            if (node.getLeft() != null && isVisibleNode(node.getLeft(), selectedRound))
+                drawSubTree(g2d, node.getLeft(), getVisibleRect());
+            if (node.getRight() != null && isVisibleNode(node.getRight(), selectedRound))
+                drawSubTree(g2d, node.getRight(), getVisibleRect());
             return;
         }
 
-        if (node.left != null && isVisibleNode(node.left, selectedRound)) {
+        if (node.getLeft() != null && isVisibleNode(node.getLeft(), selectedRound)) {
             g2d.setColor(RED_COLOR);
-            drawChild(g2d, node.left);
+            drawChild(g2d, node.getLeft());
         }
-        if (node.right != null && isVisibleNode(node.right, selectedRound)) {
+        if (node.getRight() != null && isVisibleNode(node.getRight(), selectedRound)) {
             g2d.setColor(GREEN_COLOR);
-            drawChild(g2d, node.right);
+            drawChild(g2d, node.getRight());
         }
 
         g2d.setColor(nodeColor);
         g2d.drawRect(
-                Math.round(zoom * (node.viewProps.x - nodeWidth / 2)),
-                Math.round(zoom * (node.viewProps.y - nodeHeight / 2)),
+                Math.round(zoom * (node.getViewProps().x - nodeWidth / 2)),
+                Math.round(zoom * (node.getViewProps().y - nodeHeight / 2)),
                 Math.round(zoom * nodeWidth),
                 Math.round(zoom * nodeHeight)
         );
 
         if (zoom >= textZoomLimit) {
             g2d.drawString(
-                    Integer.toString(node.id),
-                    Math.round(zoom * (node.viewProps.x - nodeWidth / 2)),
-                    Math.round(zoom * (node.viewProps.y + nodeHeight / 4))
+                    Integer.toString(node.getId()),
+                    Math.round(zoom * (node.getViewProps().x - nodeWidth / 2)),
+                    Math.round(zoom * (node.getViewProps().y + nodeHeight / 4))
             );
         }
     }

@@ -9,10 +9,12 @@ import static jetklee.TreeViewer.GREEN_COLOR;
 import static jetklee.TreeViewer.RED_COLOR;
 
 public class CustomListCellRenderer extends DefaultListCellRenderer {
-    private final List<ExecutionState.ObjectState> objects;
+    private final List<NodeMemory.ObjectState> objects;
+    private final List<NodeMemory.Deletion> deletions;
 
-    public CustomListCellRenderer(List<ExecutionState.ObjectState> objects) {
+    public CustomListCellRenderer(List<NodeMemory.ObjectState> objects, List<NodeMemory.Deletion> deletions) {
         this.objects = objects;
+        this.deletions = deletions;
     }
 
     @Override
@@ -20,15 +22,15 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
         JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
 
         int objID = Integer.parseInt(value.toString());
-        ExecutionState.ObjectState objectState = getObjectStateById(objID);
+        NodeMemory.ObjectState objectState = getObjectStateById(objID);
+        NodeMemory.Deletion deletionState = getDeletionById(objID);
 
-        if (objectState != null) {
+        if (deletionState != null) {
+            label.setBackground(RED_COLOR);
+        } else if (objectState != null) {
             switch (objectState.type()) {
                 case ADDITION:
                     label.setBackground(GREEN_COLOR);
-                    break;
-                case DELETION:
-                    label.setBackground(RED_COLOR);
                     break;
                 case CHANGE:
                     label.setBackground(Color.ORANGE);
@@ -36,6 +38,8 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
                 default:
                     label.setBackground(Color.WHITE);
             }
+        } else {
+            label.setBackground(Color.WHITE);
         }
 
         if (isSelected) {
@@ -48,8 +52,8 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
         return label;
     }
 
-    private ExecutionState.ObjectState getObjectStateById(int objID) {
-        for (ExecutionState.ObjectState object : objects) {
+    private NodeMemory.ObjectState getObjectStateById(int objID) {
+        for (NodeMemory.ObjectState object : objects) {
             if (object.objID() == objID) {
                 return object;
             }
@@ -57,8 +61,19 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
         return null;
     }
 
-    public void updateObjectList(List<ExecutionState.ObjectState> newObjects) {
+    private NodeMemory.Deletion getDeletionById(int objID) {
+        for (NodeMemory.Deletion deletion : deletions) {
+            if (deletion.objID() == objID) {
+                return deletion;
+            }
+        }
+        return null;
+    }
+
+    public void updateObjectList(List<NodeMemory.ObjectState> newObjects, List<NodeMemory.Deletion> newDeletions) {
         this.objects.clear();
         this.objects.addAll(newObjects);
+        this.deletions.clear();
+        this.deletions.addAll(newDeletions);
     }
 }

@@ -8,9 +8,9 @@ public class ConstraintsViewer extends TextViewerBase {
         super();
     }
 
-    public void displayConstraints(ExecutionState executionState) {
+    public void displayConstraints(NodeInfo nodeInfo) {
         textArea.setText("");
-        for (String constraint : executionState.constraints)
+        for (String constraint : nodeInfo.getConstraints())
             textArea.append(constraint + "\n");
         textArea.setCaretPosition(0);
     }
