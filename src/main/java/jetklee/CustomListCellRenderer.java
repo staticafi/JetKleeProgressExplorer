@@ -5,12 +5,12 @@ import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.util.List;
 
-import static jetklee.TreeViewer.GREEN_COLOR;
-import static jetklee.TreeViewer.RED_COLOR;
-
 public class CustomListCellRenderer extends DefaultListCellRenderer {
     private final List<NodeMemory.ObjectState> objects;
     private final List<NodeMemory.Deletion> deletions;
+
+    private static final Color RED_COLOR = new Color(255, 0, 0, 125);
+    private static final Color GREEN_COLOR = new Color(34, 139, 34, 125);
 
     public CustomListCellRenderer(List<NodeMemory.ObjectState> objects, List<NodeMemory.Deletion> deletions) {
         this.objects = objects;

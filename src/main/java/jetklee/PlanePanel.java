@@ -3,6 +3,7 @@ package jetklee;
 import javax.swing.*;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Comparator;
 
@@ -11,30 +12,37 @@ import static jetklee.TreeViewer.*;
 public class PlanePanel extends JPanel {
     private NodeMemory.Plane currentPlane;
     private JCheckBox sortByOffsetCheckBox;
-    private JPanel bytePanel;
+    private JPanel concretePanel;
+    private JPanel symbolicPanel;
     private JPanel updatePanel;
 
-    private final String[] byteColumns = {"offset", "value", "concrete", "knownSym", "unflushed"};
+    private static final Color RED_COLOR = new Color(255, 0, 0, 100);
+    private static final Color GREEN_COLOR = new Color(34, 139, 34, 100);
+    private final String[] concreteColumns = {"index", "value", "isConcrete"};
+    private final String[] symbolicColumns = {"index", "value", "isSymbolic"};
 
     public PlanePanel() {
         super(new BorderLayout());
-        JTabbedPane offsetTabbedPane = new JTabbedPane(JTabbedPane.TOP);
 
         sortByOffsetCheckBox = new JCheckBox("Sort by Offset");
-        sortByOffsetCheckBox.setSelected(false);
+        sortByOffsetCheckBox.setSelected(true);
         sortByOffsetCheckBox.addActionListener(e -> updateTables(currentPlane));
 
         JPanel controlPanel = new JPanel(new BorderLayout());
         controlPanel.add(sortByOffsetCheckBox, BorderLayout.NORTH);
 
-        bytePanel = new JPanel(new BorderLayout());
+        concretePanel = new JPanel(new BorderLayout());
+        symbolicPanel = new JPanel(new BorderLayout());
 
         updatePanel = new JPanel(new BorderLayout());
 
-        offsetTabbedPane.addTab("Bytes", bytePanel);
-        offsetTabbedPane.addTab("Updates", updatePanel);
+        // Create a JSplitPane to display the concrete and symbolic panels side by side
+        JSplitPane concreteSymbolicSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, concretePanel, symbolicPanel);
+        concreteSymbolicSplitPane.setResizeWeight(0.5); // Divide space equally between panels
 
-        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, controlPanel, offsetTabbedPane);
+        // Create a vertical JSplitPane to display the control panel and the combined concrete/symbolic panel
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, controlPanel, concreteSymbolicSplitPane);
+
         this.add(splitPane, BorderLayout.CENTER);
     }
 
@@ -51,34 +59,17 @@ public class PlanePanel extends JPanel {
         panel.repaint();
     }
 
-    private void updateBytesTable(NodeMemory.Plane plane) {
-        assert plane != null;
-
-        if (plane.bytes().additions().isEmpty() && plane.bytes().deletions().isEmpty()) {
+    private void updateBytesTable(NodeMemory.ByteMap additions, NodeMemory.ByteMap deletions, JPanel bytePanel, String[] byteColumns, boolean isConcrete) {
+        if (additions.isEmpty() && deletions.isEmpty()) {
             clearTable(bytePanel);
             return;
         }
 
-        ArrayList<NodeMemory.ByteGroup> byteGroups = new ArrayList<>();
-        byteGroups.addAll(plane.bytes().additions());
-        byteGroups.addAll(plane.bytes().deletions());
-
         ArrayList<Object[]> byteEntries = new ArrayList<>();
         ArrayList<Color> rowColors = new ArrayList<>();
 
-        for (NodeMemory.ByteGroup bg : byteGroups) {
-            for (int index : bg.indices()) {
-                Object[] byteData = new Object[byteColumns.length];
-                byteData[0] = index;
-                byteData[1] = bg.value();
-                byteData[2] = bg.concrete();
-                byteData[3] = bg.knownSym();
-                byteData[4] = bg.unflushed();
-
-                byteEntries.add(byteData);
-                rowColors.add(bg.isAddition() ? GREEN_COLOR : RED_COLOR);
-            }
-        }
+        createByteRows(byteEntries, rowColors, additions, GREEN_COLOR, byteColumns, currentPlane.concreteMask().additions(), isConcrete);
+        createByteRows(byteEntries, rowColors, deletions, RED_COLOR, byteColumns, currentPlane.concreteMask().additions(), isConcrete);
 
         if (sortByOffsetCheckBox.isSelected()) {
             ArrayList<Integer> indices = new ArrayList<>();
@@ -126,6 +117,27 @@ public class PlanePanel extends JPanel {
         bytePanel.repaint();
     }
 
+    private void createByteRows(ArrayList<Object[]> byteEntries, ArrayList<Color> rowColors, NodeMemory.ByteMap deletions, Color redColor, String[] byteColumns, NodeMemory.ByteMap concreteMask, boolean isConcrete) {
+        for (String key : deletions.keySet()) {
+            ArrayList<Integer> indices = deletions.get(key);
+            for (int index : indices) {
+                Object[] byteData = new Object[byteColumns.length];
+                byteData[0] = index;
+                byteData[1] = key;
+                String mask = findKeyForByteIndex(index, concreteMask);
+                if (mask != null) {
+                    if (isConcrete) {
+                        byteData[2] = mask.equals("0") ? "false" : "true";
+                    } else {
+                        byteData[2] = mask.equals("0") ? "true" : "false";
+                    }
+                }
+                byteEntries.add(byteData);
+                rowColors.add(redColor);
+            }
+        }
+    }
+
     private boolean isNumeric(String str) {
         try {
             Integer.parseInt(str);
@@ -162,8 +174,7 @@ public class PlanePanel extends JPanel {
         }
 
         if (sortByOffsetCheckBox.isSelected()) {
-            numericUpdates.sort(Comparator.comparingInt(entry -> Integer.parseInt((String) entry[0]))
-            );
+            numericUpdates.sort(Comparator.comparingInt(entry -> Integer.parseInt((String) entry[0])));
         }
 
         updateEntries.addAll(numericUpdates);
@@ -185,12 +196,25 @@ public class PlanePanel extends JPanel {
     public void updateTables(NodeMemory.Plane plane) {
         if (plane == null) {
             clearTable(updatePanel);
-            clearTable(bytePanel);
+            clearTable(concretePanel);
+            clearTable(symbolicPanel);
             return;
         }
 
         this.currentPlane = plane;
-        updateBytesTable(currentPlane);
+        updateBytesTable(currentPlane.concreteStore().additions(), currentPlane.concreteStore().deletions(), concretePanel, concreteColumns, true);
+        updateBytesTable(currentPlane.knownSymbolics().additions(), currentPlane.knownSymbolics().deletions(), symbolicPanel, symbolicColumns, false);
         updateUpdatesTable(currentPlane);
+    }
+
+    private String findKeyForByteIndex(int byteIndex, NodeMemory.ByteMap additions) {
+        for (String key : additions.keySet()) {
+            ArrayList<Integer> values = additions.get(key);
+
+            if (values.contains(byteIndex)) {
+                return key;
+            }
+        }
+        return null;
     }
 }

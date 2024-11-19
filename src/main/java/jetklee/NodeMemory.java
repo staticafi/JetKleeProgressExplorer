@@ -4,7 +4,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
+import java.util.HashSet;
 
 /**
  * Parses and holds information about execution state of the process tree
@@ -13,7 +14,7 @@ public class NodeMemory {
     // TODO presunut nondet values do context
 
 
-    public record Diff<T>(ArrayList<T> additions, ArrayList<T> deletions) {
+    public record Diff(ByteMap additions, ByteMap deletions) {
     }
 
     public enum OperationType {
@@ -26,20 +27,15 @@ public class NodeMemory {
                               int copyOnWriteOwner, boolean readOnly, Plane segmentPlane, Plane offsetPlane) {
     }
 
-    public record ByteGroup(boolean concrete, boolean knownSym, boolean unflushed, String value,
-                            ArrayList<Integer> indices, boolean isAddition) {
-
+    public static class ByteMap extends HashMap<String, ArrayList<Integer>> {
     }
 
     public record Plane(PlaneType type, int memoryObjectID, String rootObject, int sizeBound,
                         boolean initialized, boolean symbolic, int initialValue,
-                        Diff<ByteGroup> bytes, Updates updates) {
+                        Diff concreteStore, Diff concreteMask, Diff knownSymbolics,
+                        Updates updates) {
         public enum PlaneType {
             SEGMENT, OFFSET;
-
-            public boolean isSegment(PlaneType type) {
-                return type == SEGMENT;
-            }
 
             public static String toString(PlaneType type) {
                 return switch (type) {
@@ -54,7 +50,7 @@ public class NodeMemory {
                          ArrayList<Deletion> deletions) {
     }
 
-    public class Updates extends LinkedHashMap<String, String> {
+    public class Updates extends HashMap<String, String> {
     }
 
     public record Deletion(int objID, OperationType type) {
@@ -127,41 +123,28 @@ public class NodeMemory {
         return objectStates;
     }
 
-    private ArrayList<ByteGroup> parseByte(JSONArray bytesJSON, boolean isAddition) {
-        ArrayList<ByteGroup> bytes = new ArrayList<>();
+    private ByteMap parseByte(JSONArray bytesJSON, boolean isAddition) {
+        ByteMap byteMap = new ByteMap();
 
         for (int i = 0; i < bytesJSON.length(); ++i) {
-            JSONArray byteJSON = bytesJSON.getJSONArray(i);
+            JSONObject byteObject = bytesJSON.getJSONObject(i);
+            String value = byteObject.keys().next(); // values of byte
+            JSONArray indicesJSON = byteObject.getJSONArray(value); // indices for this value
+            ArrayList<Integer> indices = new ArrayList<>();
 
-            // skip first 3 elements (concrete, knownSym, unflushed) in byte array: [concrete, knownSym, unflushed, [value, index, index, ..., index]]
-            for (int j = 3; j < byteJSON.length(); ++j) {
-                ArrayList<Integer> indices = new ArrayList<>();
-                JSONArray indicesJSON = byteJSON.getJSONArray(j);
-
-                // skip first element (value) in index array: [value, index, index, ..., index]
-                for (int k = 1; k < indicesJSON.length(); ++k) {
-                    indices.add(indicesJSON.getInt(k));
-                }
-
-                ByteGroup b = new ByteGroup(
-                        byteJSON.getInt(0) == 1, // concrete
-                        byteJSON.getInt(1) == 1, // knownSym
-                        byteJSON.getInt(2) == 1, // unflushed
-                        indicesJSON.getString(0), //value
-                        indices,
-                        isAddition
-                );
-                bytes.add(b);
+            for (int j = 0; j < indicesJSON.length(); ++j) {
+                indices.add(indicesJSON.getInt(j));
             }
+
+            byteMap.put(value, indices);
         }
-        return bytes;
+        return byteMap;
     }
 
-    private Diff<ByteGroup> parseBytes(JSONObject bytes) {
-        ArrayList<ByteGroup> additions = new ArrayList<>();
-        ArrayList<ByteGroup> deletions = new ArrayList<>();
+    private Diff parseBytes(JSONObject bytes) {
+        ByteMap additions = new ByteMap();
+        ByteMap deletions = new ByteMap();
 
-        // TODO refactor to "additions, deletions" instead of "add, del"
         if (bytes.has("add")) {
             JSONArray additionsJSON = bytes.getJSONArray("add");
             additions = parseByte(additionsJSON, true);
@@ -170,7 +153,7 @@ public class NodeMemory {
             JSONArray additionsJSON = bytes.getJSONArray("del");
             deletions = parseByte(additionsJSON, false);
         }
-        return new Diff<>(additions, deletions);
+        return new Diff(additions, deletions);
     }
 
     private Plane parsePlane(JSONObject data, Plane.PlaneType type) {
@@ -178,11 +161,23 @@ public class NodeMemory {
         if (planeJSON.isEmpty()) return null;
 
 
-        Diff<ByteGroup> bytes = new Diff<>(new ArrayList<>(), new ArrayList<>());
+        Diff concreteStore = new Diff(new ByteMap(), new ByteMap());
+        Diff concreteMask = new Diff(new ByteMap(), new ByteMap());
+        Diff knownSymbolics = new Diff(new ByteMap(), new ByteMap());
 
-        if (planeJSON.has("bytes")) {
-            JSONObject bytesJSON = planeJSON.getJSONObject("bytes");
-            bytes = parseBytes(bytesJSON);
+        if (planeJSON.has("concreteStore")) {
+            JSONObject bytesJSON = planeJSON.getJSONObject("concreteStore");
+            concreteStore = parseBytes(bytesJSON);
+        }
+
+        if (planeJSON.has("concreteMask")) {
+            JSONObject bytesJSON = planeJSON.getJSONObject("concreteMask");
+            concreteMask = parseBytes(bytesJSON);
+        }
+
+        if (planeJSON.has("knownSymbolics")) {
+            JSONObject bytesJSON = planeJSON.getJSONObject("knownSymbolics");
+            knownSymbolics = parseBytes(bytesJSON);
         }
 
         Updates updates = new Updates();
@@ -198,13 +193,15 @@ public class NodeMemory {
 
         return new Plane(
                 type,
-                planeJSON.getInt("memoryObjectID"),
+                planeJSON.getInt("objID"),
                 planeJSON.getString("rootObject"),
                 planeJSON.getInt("sizeBound"),
                 planeJSON.getInt("initialized") == 1,
                 planeJSON.getInt("symbolic") == 1,
                 planeJSON.getInt("initialValue"),
-                bytes,
+                concreteStore,
+                concreteMask,
+                knownSymbolics,
                 updates
         );
     }

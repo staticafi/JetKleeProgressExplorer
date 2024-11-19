@@ -19,8 +19,8 @@ public class Node {
     private Node left;
     private Node right;
     private int id;
-    private int memoryId;
     private NodeInfo info;
+    private NodeMemory memory;
     /**
      * @param id_ unique node id
      */
@@ -66,10 +66,6 @@ public class Node {
         return id;
     }
 
-    public int getMemoryId() {
-        return memoryId;
-    }
-
     public NodeInfo getInfo() {
         return info;
     }
@@ -101,12 +97,14 @@ public class Node {
     public void setId(int id) {
         this.id = id;
     }
-
-    public void setMemoryId(int memoryId) {
-        this.memoryId = memoryId;
-    }
-
     public void setInfo(NodeInfo info) {
         this.info = info;
+    }
+
+    public void setMemory(NodeMemory memory) {
+        this.memory = memory;
+    }
+    public NodeMemory getMemory() {
+        return memory;
     }
 }

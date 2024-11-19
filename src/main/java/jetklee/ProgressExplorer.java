@@ -9,7 +9,6 @@ import java.nio.file.Paths;
 import java.util.Collections;
 
 import com.formdev.flatlaf.FlatLightLaf;
-import com.formdev.flatlaf.FlatDarkLaf;
 
 /**
  * Represents whole application. Initializes and updates UI components.
@@ -217,10 +216,10 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
     private void displayNodeInfoPane(Node node) {
         contextViewer.displayContext(node.getInfo());
         constraintsViewer.displayConstraints(node.getInfo());
-        memoryViewer.displayMemory(tree.memory.get(node.getMemoryId()));
+        memoryViewer.displayMemory(node);
 
         nodeInfoTabbedPane.setVisible(true);
-        splitPane.setDividerLocation(0.7);
+        splitPane.setDividerLocation(0.5);
         selectCodeLine(node, TabbedPane.TREE_PANE);
     }
 

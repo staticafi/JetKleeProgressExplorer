@@ -26,8 +26,8 @@ public class TreeViewer extends JPanel {
     private static final int nodeSeparatorVertical = 200;
     private static final int nodeWidth = 100;
     private static final int nodeHeight = 50;
-    public static final Color RED_COLOR = Color.RED;
-    public static final Color GREEN_COLOR = new Color(34, 139, 34);
+    private static final Color RED_COLOR = Color.RED;
+    private static final Color GREEN_COLOR = new Color(34, 139, 34);
     public static final Color DEFAULT_COLOR = Color.WHITE;
     private static final Color nodeColor = Color.BLACK;
 

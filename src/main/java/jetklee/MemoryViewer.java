@@ -1,9 +1,14 @@
 package jetklee;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.StyledDocument;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -15,6 +20,7 @@ import java.util.ArrayList;
 public class MemoryViewer extends JPanel implements ListSelectionListener {
     public JButton showAllButton;
     private NodeMemory.Memory currentMemory;
+    private Node currentState;
     private boolean showAll = false;
 
     private JList<String> objectsList;
@@ -34,21 +40,19 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         showAllButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-//                assert currentState != null;
-//
-//                showAll = !showAll;
-//                if (showAll) {
-//                    showAllButton.setText("Hide");
-//                    displayCompleteMemory(currentState);
-//                }
-//                else {
-//                    showAllButton.setText("Show All");
-//                    displayShortMemory(currentState);
-//                }
+                showAll = !showAll;
+                if (showAll) {
+                    showAllButton.setText("Hide");
+                    displayCompleteMemory(currentState);
+                }
+                else {
+                    showAllButton.setText("Show All");
+                    displayShortMemory(currentState);
+                }
             }
         });
 
-//        this.add(showAllButton, BorderLayout.NORTH);
+        this.add(showAllButton, BorderLayout.NORTH);
 
         segmentPanel = new PlanePanel();
         segmentPanel.setBorder(new TitledBorder("Segment"));
@@ -88,8 +92,8 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         planesSplitPane.setResizeWeight(0.5);
 
         objectStateSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, planesSplitPane, objectInfoPanel);
-        objectStateSplitPane.setDividerLocation(0.4);
-        objectStateSplitPane.setResizeWeight(0.4);
+        objectStateSplitPane.setDividerLocation(0.9);
+        objectStateSplitPane.setResizeWeight(0.9);
 
         mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, objectsPanel, objectStateSplitPane);
         mainSplitPane.setDividerLocation(0.2);
@@ -98,29 +102,21 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         this.add(mainSplitPane, BorderLayout.CENTER);
     }
 
-
-    public void displayMemory(NodeMemory.Memory memory) {
+    private void displayTables(NodeMemory.Memory memory) {
         segmentPanel.updateTables(null);
         offsetPanel.updateTables(null);
 
-        currentMemory = memory;
-
-        // TODO vypisat, ze nebol najdeny JSON pre tento node (moze sa stat pri timeoute)dd
-        if (currentMemory == null) {
-            currentMemory = new NodeMemory.Memory(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
-        }
-
         objects = new ArrayList<>();
-        objects.addAll(currentMemory.additions());
-        objects.addAll(currentMemory.changes());
+        objects.addAll(memory.additions());
+        objects.addAll(memory.changes());
 
-        ((CustomListCellRenderer) objectsList.getCellRenderer()).updateObjectList(objects, currentMemory.deletions());
+        ((CustomListCellRenderer) objectsList.getCellRenderer()).updateObjectList(objects, memory.deletions());
         ((DefaultListModel<String>) objectsList.getModel()).clear();
 
         for (NodeMemory.ObjectState object : objects)
             ((DefaultListModel<String>) objectsList.getModel()).addElement(String.valueOf(object.objID()));
 
-        for (NodeMemory.Deletion deletion : currentMemory.deletions()) {
+        for (NodeMemory.Deletion deletion : memory.deletions()) {
             ((DefaultListModel<String>) objectsList.getModel()).addElement(String.valueOf(deletion.objID()));
         }
 
@@ -130,6 +126,135 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
 
         objectsList.setSelectedIndex(0);
         updatePlanes();
+    }
+
+    private void appendKeyValue(StyledDocument doc, String key, String value) {
+        SimpleAttributeSet keyStyle = new SimpleAttributeSet();
+        StyleConstants.setForeground(keyStyle, Color.BLUE);
+        StyleConstants.setBold(keyStyle, true);
+
+        SimpleAttributeSet valueStyle = new SimpleAttributeSet();
+        StyleConstants.setForeground(valueStyle, Color.BLACK);
+
+        try {
+            doc.insertString(doc.getLength(), key + ": ", keyStyle);
+            doc.insertString(doc.getLength(), value + ", ", valueStyle);
+        } catch (BadLocationException e) {
+//            throw new RuntimeException(e);
+        }
+    }
+
+    private void displayObjectInfo() {
+        objectInfoPanel.removeAll();
+
+        if (objectsList.getSelectedIndex() < 0) {
+            return;
+        }
+
+        JTextPane textPane = new JTextPane();
+        textPane.setEditable(false);
+        textPane.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        JScrollPane scrollPane = new JScrollPane(textPane);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+
+        objectInfoPanel.add(scrollPane, BorderLayout.CENTER);
+
+        StyledDocument doc = textPane.getStyledDocument();
+
+        int selected = Integer.parseInt(objectsList.getSelectedValue());
+
+        boolean isDeletion = currentMemory.deletions().stream()
+                .anyMatch(deletion -> deletion.objID() == selected);
+
+        if (isDeletion) {
+            handleDeletionClick(selected);
+            return;
+        }
+
+        NodeMemory.ObjectState currentObjectState = objects.stream()
+                .filter(obj -> obj.objID() == selected)
+                .findFirst()
+                .orElse(null);
+
+        if (currentObjectState == null) {
+            return;
+        }
+
+        appendKeyValue(doc, "ID", String.valueOf(currentObjectState.objID()));
+        appendKeyValue(doc, "Segment", String.valueOf(currentObjectState.segment()));
+        appendKeyValue(doc, "Name", currentObjectState.name());
+        appendKeyValue(doc, "Size", currentObjectState.size());
+        appendKeyValue(doc, "Local", String.valueOf(currentObjectState.isLocal()));
+        appendKeyValue(doc, "Global", String.valueOf(currentObjectState.isGlobal()));
+        appendKeyValue(doc, "Fixed", String.valueOf(currentObjectState.isFixed()));
+        appendKeyValue(doc, "User Spec", String.valueOf(currentObjectState.isUserSpec()));
+        appendKeyValue(doc, "Lazy", String.valueOf(currentObjectState.isLazy()));
+        appendKeyValue(doc, "Symbolic Address", currentObjectState.symAddress());
+        appendKeyValue(doc, "Copy-On-Write Owner", String.valueOf(currentObjectState.copyOnWriteOwner()));
+        appendKeyValue(doc, "Read-Only", String.valueOf(currentObjectState.readOnly()));
+
+        if (currentObjectState.segmentPlane() != null) {
+            appendPlaneInfo(doc, "Segment Plane", currentObjectState.segmentPlane());
+        }
+        if (currentObjectState.offsetPlane() != null) {
+            appendPlaneInfo(doc, "Offset Plane", currentObjectState.offsetPlane());
+        }
+    }
+
+    private void appendPlaneInfo(StyledDocument doc, String planeType, NodeMemory.Plane plane) {
+        assert plane != null;
+
+        SimpleAttributeSet headerStyle = new SimpleAttributeSet();
+        StyleConstants.setForeground(headerStyle, Color.BLUE);
+        StyleConstants.setBold(headerStyle, true);
+        try {
+            doc.insertString(doc.getLength(), "\n\n" + planeType + ":\n", headerStyle);
+        } catch (BadLocationException e) {
+//            e.printStackTrace();
+        }
+
+        appendKeyValue(doc, "Root Object", plane.rootObject());
+        appendKeyValue(doc, "Size Bound", String.valueOf(plane.sizeBound()));
+        appendKeyValue(doc, "Initialized", String.valueOf(plane.initialized()));
+        appendKeyValue(doc, "Symbolic", String.valueOf(plane.symbolic()));
+        appendKeyValue(doc, "Initial Value", String.valueOf(plane.initialValue()));
+    }
+
+    private void getCompleteMemory(Node node, NodeMemory.Memory memory) {
+        if (node == null) {
+            return;
+        }
+
+        getCompleteMemory(node.getParent(), memory);
+    }
+
+    private void displayCompleteMemory(Node node) {
+        NodeMemory.Memory m = new NodeMemory.Memory(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+        getCompleteMemory(node, m);
+        displayTables(m);
+        displayObjectInfo();
+    }
+
+    private void displayShortMemory(Node node) {
+        displayTables(currentMemory);
+        displayObjectInfo();
+    }
+
+    public void displayMemory(Node node) {
+        currentState = node;
+        currentMemory = node.getMemory().getMemory();
+
+        if (currentMemory == null) {
+            currentMemory = new NodeMemory.Memory(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+        }
+
+        if (showAll) {
+            displayCompleteMemory(node);
+        } else {
+            displayShortMemory(node);
+        }
     }
 
     private void updatePlanes() {
@@ -185,6 +310,7 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         if (isDeletion) {
             handleDeletionClick(selectedID);
         } else {
+            displayObjectInfo();
             updatePlanes();
         }
     }

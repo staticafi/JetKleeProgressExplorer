@@ -168,13 +168,14 @@ public class Tree {
         nodes.put(nodeID, node);
 
         node.setInfo(new NodeInfo(actionJSON));
-        node.setMemoryId(isUnique ? nodeID : nodeID - 1);
     }
 
     private void insertMemory(JSONObject actionJSON) {
-        int memoryId = actionJSON.getInt("nodeID");
-        NodeMemory m = new NodeMemory(actionJSON, memoryId);
-        memory.put(memoryId, m.getMemory());
+        int nodeID = actionJSON.getInt("nodeID");
+        Node node = nodes.get(nodeID);
+        NodeMemory m = new NodeMemory(actionJSON, nodeID);
+        memory.put(nodeID, m.getMemory());
+        node.setMemory(m);
     }
 
     private void insertEdge(JSONObject actionJSON) {
