@@ -5,7 +5,6 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 
 /**
  * Parses and holds information about execution state of the process tree
@@ -30,6 +29,9 @@ public class NodeMemory {
     public static class ByteMap extends HashMap<String, ArrayList<Integer>> {
     }
 
+    public record AllocSite(String scope, String name, String code) {
+    }
+
     public record Plane(PlaneType type, int memoryObjectID, String rootObject, int sizeBound,
                         boolean initialized, boolean symbolic, int initialValue,
                         Diff concreteStore, Diff concreteMask, Diff knownSymbolics,
@@ -50,7 +52,7 @@ public class NodeMemory {
                          ArrayList<Deletion> deletions) {
     }
 
-    public class Updates extends HashMap<String, String> {
+    public static class Updates extends HashMap<String, String> {
     }
 
     public record Deletion(int objID, OperationType type) {
@@ -101,6 +103,16 @@ public class NodeMemory {
         for (int i = 0; i < objectStatesJSON.length(); i++) {
             JSONObject objectStateJSON = objectStatesJSON.getJSONObject(i);
 
+//            AllocSite allocSite = null;
+//            if (objectStateJSON.has("allocSite")) {
+//                JSONObject allocSiteJSON = objectStateJSON.getJSONObject("allocSite");
+//                allocSite = new AllocSite(
+//                        allocSiteJSON.getString("scope"),
+//                        allocSiteJSON.getString("name"),
+//                        allocSiteJSON.getString("code")
+//                );
+//            }
+
             ObjectState objectState = new ObjectState(
                     objectStateJSON.getInt("objID"),
                     type,
@@ -115,6 +127,7 @@ public class NodeMemory {
                     objectStateJSON.getString("symAddress"),
                     objectStateJSON.getInt("copyOnWriteOwner"),
                     objectStateJSON.getInt("readOnly") == 1,
+//                    allocSite,
                     parsePlane(objectStateJSON, Plane.PlaneType.SEGMENT),
                     parsePlane(objectStateJSON, Plane.PlaneType.OFFSET)
             );
@@ -187,7 +200,7 @@ public class NodeMemory {
                 JSONObject updateJSON = updatesJSON.getJSONObject(i);
                 String key = updateJSON.keys().next();
                 String value = updateJSON.getString(key);
-                updates.put(key, value);
+                updates.put(value, key);
             }
         }
 

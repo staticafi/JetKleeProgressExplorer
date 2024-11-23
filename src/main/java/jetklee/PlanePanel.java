@@ -36,14 +36,15 @@ public class PlanePanel extends JPanel {
 
         updatePanel = new JPanel(new BorderLayout());
 
-        // Create a JSplitPane to display the concrete and symbolic panels side by side
-        JSplitPane concreteSymbolicSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, concretePanel, symbolicPanel);
-        concreteSymbolicSplitPane.setResizeWeight(0.5); // Divide space equally between panels
+        JSplitPane bytesSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, concretePanel, symbolicPanel);
+        bytesSplitPane.setResizeWeight(0.5);
 
-        // Create a vertical JSplitPane to display the control panel and the combined concrete/symbolic panel
-        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, controlPanel, concreteSymbolicSplitPane);
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.addTab("Bytes", bytesSplitPane);
+        tabbedPane.addTab("Update", updatePanel);
 
-        this.add(splitPane, BorderLayout.CENTER);
+        this.add(controlPanel, BorderLayout.NORTH);
+        this.add(tabbedPane, BorderLayout.CENTER);
     }
 
     private void clearTable(JPanel panel) {
