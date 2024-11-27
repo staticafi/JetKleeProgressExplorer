@@ -3,11 +3,8 @@ package jetklee;
 import javax.swing.*;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Comparator;
-
-import static jetklee.TreeViewer.*;
 
 public class PlanePanel extends JPanel {
     private NodeMemory.Plane currentPlane;
@@ -110,7 +107,25 @@ public class PlanePanel extends JPanel {
                 c.setBackground(rowColorsArray[row]);
                 return c;
             }
+
         };
+
+        byteTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                int row = byteTable.rowAtPoint(e.getPoint());
+                int column = byteTable.columnAtPoint(e.getPoint());
+
+                if (column == 1) {
+                    Object value = byteTable.getValueAt(row, column);
+                    boolean isSymbolic = byteTable.getValueAt(row, 2) == "false";
+                    if (value != null && value != "" && isSymbolic) {
+                        showPopup(value.toString(), "Value Details");
+                    }
+                }
+            }
+        });
+
 
         bytePanel.removeAll();
         bytePanel.add(new JScrollPane(byteTable));
@@ -186,12 +201,33 @@ public class PlanePanel extends JPanel {
             updateDataArray[i] = updateEntries.get(i);
         }
 
-        JTable updateTable = new JTable(updateDataArray, new String[]{"Offset", "Value"});
+        JTable updateTable = getUpdateTable(updateDataArray);
 
         updatePanel.removeAll();
         updatePanel.add(new JScrollPane(updateTable), BorderLayout.CENTER);
         updatePanel.revalidate();
         updatePanel.repaint();
+    }
+
+    private JTable getUpdateTable(Object[][] updateDataArray) {
+        JTable updateTable = new JTable(updateDataArray, new String[]{"Offset", "Value"});
+        updateTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                int row = updateTable.rowAtPoint(e.getPoint());
+                int column = updateTable.columnAtPoint(e.getPoint());
+
+                if (column == 0 || column == 1) {
+                    Object value = updateTable.getValueAt(row, column);
+                    if (value != null && value != "") {
+                        String title = (column == 0) ? "Offset Details" : "Value Details";
+                        showPopup(value.toString(), title);
+                    }
+                }
+            }
+        });
+
+        return updateTable;
     }
 
     public void updateTables(NodeMemory.Plane plane) {
@@ -218,4 +254,24 @@ public class PlanePanel extends JPanel {
         }
         return null;
     }
+
+    private void showPopup(String value, String title) {
+        JFrame popup = new JFrame(title);
+        popup.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        popup.setSize(400, 300);
+        popup.setResizable(true);
+
+        JEditorPane editorPane = new JEditorPane();
+        editorPane.setContentType("text/html");
+        editorPane.setText(KQueryFormatter.formatConstraint(value));
+        editorPane.setEditable(false);
+
+        JScrollPane scrollPane = new JScrollPane(editorPane);
+        popup.add(scrollPane);
+
+        popup.setLocationRelativeTo(this);
+        popup.setVisible(true);
+    }
+
+
 }
