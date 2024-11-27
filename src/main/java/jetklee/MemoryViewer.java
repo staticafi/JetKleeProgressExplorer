@@ -3,6 +3,8 @@ package jetklee;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.text.BadLocationException;
@@ -75,13 +77,62 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         objectScrollPane = new JScrollPane(objectsList);
         objectsPanel.add(objectScrollPane, BorderLayout.CENTER);
 
+        entryField.getDocument().addDocumentListener(new DocumentListener() {
+            DefaultListModel<String> originalModel = (DefaultListModel<String>) objectsList.getModel();
+
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                filterList();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                filterList();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                filterList();
+            }
+
+            private void filterList() {
+                String input = entryField.getText().toLowerCase();
+
+                if (input.isEmpty()) {
+                    objectsList.setModel(originalModel);
+                    objectsList.clearSelection();
+                    entryField.setBackground(Color.WHITE);
+                    return;
+                }
+
+                DefaultListModel<String> filteredModel = new DefaultListModel<>();
+                for (int i = 0; i < originalModel.getSize(); i++) {
+                    String item = originalModel.getElementAt(i).toLowerCase();
+
+                    if (item.contains(input)) {
+                        filteredModel.addElement(originalModel.getElementAt(i));
+                    }
+                }
+
+                objectsList.setModel(filteredModel);
+
+                if (filteredModel.isEmpty()) {
+                    entryField.setBackground(Color.PINK);
+                } else {
+                    entryField.setBackground(Color.WHITE);
+                }
+            }
+        });
+
         entryField.addActionListener(e -> {
-            String input = entryField.getText();
-            try {
-                int number = Integer.parseInt(input);
-                objectsList.setSelectedIndex(number);
-            } catch (NumberFormatException ex) {
-//                entryField.setText("Please enter a number");
+            String input = entryField.getText().toLowerCase();
+            if (!input.isEmpty()) {
+                DefaultListModel<String> currentModel = (DefaultListModel<String>) objectsList.getModel();
+                if (!currentModel.isEmpty()) {
+                    objectsList.setSelectedIndex(0);
+                    objectsList.ensureIndexIsVisible(0);
+                    objectsList.requestFocus();
+                }
             }
         });
 
@@ -113,11 +164,35 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         ((CustomListCellRenderer) objectsList.getCellRenderer()).updateObjectList(objects, memory.deletions());
         ((DefaultListModel<String>) objectsList.getModel()).clear();
 
-        for (NodeMemory.ObjectState object : objects)
-            ((DefaultListModel<String>) objectsList.getModel()).addElement(String.valueOf(object.objID()));
+        int maxDigits = 0;
+        for (NodeMemory.ObjectState object : objects) {
+            int length = String.valueOf(object.objID()).length();
+            if (length > maxDigits) {
+                maxDigits = length;
+            }
+        }
+        for (NodeMemory.Deletion deletion : memory.deletions()) {
+            int length = String.valueOf(deletion.objID()).length();
+            if (length > maxDigits) {
+                maxDigits = length;
+            }
+        }
+
+        for (NodeMemory.ObjectState object : objects) {
+            String objectName = String.format("%-" + maxDigits + "d", object.objID()); // Left-align with padding
+
+            if (object.segmentPlane() != null) {
+                objectName += " " + object.segmentPlane().rootObject();
+            } else if (object.offsetPlane() != null) {
+                objectName += " " + object.offsetPlane().rootObject();
+            }
+
+            ((DefaultListModel<String>) objectsList.getModel()).addElement(objectName);
+        }
 
         for (NodeMemory.Deletion deletion : memory.deletions()) {
-            ((DefaultListModel<String>) objectsList.getModel()).addElement(String.valueOf(deletion.objID()));
+            String deletionName = String.format("%-" + maxDigits + "d", deletion.objID());
+            ((DefaultListModel<String>) objectsList.getModel()).addElement(deletionName);
         }
 
         if (objects.isEmpty()) {
@@ -154,25 +229,12 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
             return;
         }
 
-        JTextPane textPane = new JTextPane();
-        textPane.setEditable(false);
-        textPane.setBorder(new EmptyBorder(10, 10, 10, 10));
-
-        JScrollPane scrollPane = new JScrollPane(textPane);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-
-        objectInfoPanel.add(scrollPane, BorderLayout.CENTER);
-
-        StyledDocument doc = textPane.getStyledDocument();
-
-        int selected = Integer.parseInt(objectsList.getSelectedValue());
+        int selected = Integer.parseInt(objectsList.getSelectedValue().split(" ")[0]);
 
         boolean isDeletion = currentMemory.deletions().stream()
                 .anyMatch(deletion -> deletion.objID() == selected);
 
         if (isDeletion) {
-            handleDeletionClick(selected);
             return;
         }
 
@@ -185,56 +247,95 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
             return;
         }
 
-        appendKeyValue(doc, "ID", String.valueOf(currentObjectState.objID()));
-        appendKeyValue(doc, "Segment", String.valueOf(currentObjectState.segment()));
-        appendKeyValue(doc, "Name", currentObjectState.name());
-        appendKeyValue(doc, "Size", currentObjectState.size());
-        appendKeyValue(doc, "Local", String.valueOf(currentObjectState.isLocal()));
-        appendKeyValue(doc, "Global", String.valueOf(currentObjectState.isGlobal()));
-        appendKeyValue(doc, "Fixed", String.valueOf(currentObjectState.isFixed()));
-        appendKeyValue(doc, "User Spec", String.valueOf(currentObjectState.isUserSpec()));
-        appendKeyValue(doc, "Lazy", String.valueOf(currentObjectState.isLazy()));
-        appendKeyValue(doc, "Symbolic Address", currentObjectState.symAddress());
-        appendKeyValue(doc, "Copy-On-Write Owner", String.valueOf(currentObjectState.copyOnWriteOwner()));
-        appendKeyValue(doc, "Read-Only", String.valueOf(currentObjectState.readOnly()));
-        if (currentObjectState.segmentPlane() != null) {
-            appendPlaneInfo(doc, "Segment Plane", currentObjectState.segmentPlane());
+        StringBuilder htmlContent = new StringBuilder("<html><body style='font-family:Arial;padding:10px;'>");
+
+        // Row 1: ID (Key and Value are bold)
+        htmlContent.append("<b style='color:blue;'>objId:</b>").append(currentObjectState.objID()).append("<br>");
+
+        // Row 2: Segment, Name, Size, Copy-On-Write Owner, Symbolic Address
+        appendKeyValueInlineNonBold(htmlContent, "segment", currentObjectState.segment());
+        appendKeyValueInlineNonBold(htmlContent, "name", currentObjectState.name());
+        appendKeyValueInlineNonBold(htmlContent, "size", currentObjectState.size());
+        appendKeyValueInlineNonBold(htmlContent, "copyOnWriteOwner", currentObjectState.copyOnWriteOwner());
+        appendKeyValueInlineNonBold(htmlContent, "symbolicAddress", currentObjectState.symAddress());
+        htmlContent.append("<br>");
+
+        // Row 3: Local, Global, Fixed, User Spec, Lazy, Read-Only
+        appendKeyValueInlineNonBold(htmlContent, "local", currentObjectState.isLocal());
+        appendKeyValueInlineNonBold(htmlContent, "global", currentObjectState.isGlobal());
+        appendKeyValueInlineNonBold(htmlContent, "fixed", currentObjectState.isFixed());
+        appendKeyValueInlineNonBold(htmlContent, "userSpec", currentObjectState.isUserSpec());
+        appendKeyValueInlineNonBold(htmlContent, "lazy", currentObjectState.isLazy());
+        appendKeyValueInlineNonBold(htmlContent, "readOnly", currentObjectState.readOnly());
+        htmlContent.append("<br>");
+        htmlContent.append("<br>");
+
+        if (currentObjectState.allocSite() != null) {
+            htmlContent.append("<b style='color:blue;'>allocSite:</b><br>");
+            NodeMemory.AllocSite allocSite = currentObjectState.allocSite();
+            htmlContent.append(formatAllocSiteAsList(allocSite));
         }
+        htmlContent.append("<br>");
+
         if (currentObjectState.offsetPlane() != null) {
-            appendPlaneInfo(doc, "Offset Plane", currentObjectState.offsetPlane());
+            htmlContent.append("<b style='color:blue;'>offsetPlane</b>");
+            htmlContent.append("<br>");
+            appendPlaneDetailsHTML(htmlContent, currentObjectState.offsetPlane());
         }
+
+        htmlContent.append("<br>");
+        htmlContent.append("<br>");
+
+        // Segment Plane
+        if (currentObjectState.segmentPlane() != null) {
+            htmlContent.append("<b style='color:blue;'>segmentPlane</b>");
+            htmlContent.append("<br>");
+            appendPlaneDetailsHTML(htmlContent, currentObjectState.segmentPlane());
+        }
+
+        htmlContent.append("</body></html>");
+
+        JEditorPane editorPane = new JEditorPane();
+        editorPane.setContentType("text/html");
+        editorPane.setText(htmlContent.toString());
+        editorPane.setEditable(false);
+
+        JScrollPane scrollPane = new JScrollPane(editorPane);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+
+        objectInfoPanel.add(scrollPane, BorderLayout.CENTER);
         objectInfoPanel.revalidate();
         objectInfoPanel.repaint();
     }
 
-    private void appendPlaneInfo(StyledDocument doc, String planeType, NodeMemory.Plane plane) {
-        assert plane != null;
+    private String formatAllocSiteAsList(NodeMemory.AllocSite allocSite) {
+        return "&nbsp;&nbsp;- <span style='color:blue;'>scope:</span> " + allocSite.scope() + "<br>"
+                + "&nbsp;&nbsp;- <span style='color:blue;'>name:</span> " + allocSite.name() + "<br>"
+                + "&nbsp;&nbsp;- <span style='color:blue;'>code:</span> " + allocSite.code() + "<br>";
+    }
 
-        SimpleAttributeSet headerStyle = new SimpleAttributeSet();
-        StyleConstants.setForeground(headerStyle, Color.BLUE);
-        StyleConstants.setBold(headerStyle, true);
-        try {
-            doc.insertString(doc.getLength(), "\n\n" + planeType + ":\n", headerStyle);
-        } catch (BadLocationException e) {
-//            e.printStackTrace();
-        }
 
-        appendKeyValue(doc, "Root Object", plane.rootObject());
-        appendKeyValue(doc, "Size Bound", String.valueOf(plane.sizeBound()));
-        appendKeyValue(doc, "Initialized", String.valueOf(plane.initialized()));
-        appendKeyValue(doc, "Symbolic", String.valueOf(plane.symbolic()));
-        appendKeyValue(doc, "Initial Value", String.valueOf(plane.initialValue()));
+    private void appendKeyValueInlineNonBold(StringBuilder html, String key, Object value) {
+        html.append("<span style='color:blue;'>").append(key).append(":</span> <span style='color:black;'>").append(value).append("</span>&nbsp;&nbsp;&nbsp;");
+    }
+
+    private void appendPlaneDetailsHTML(StringBuilder html, NodeMemory.Plane plane) {
+        appendKeyValueInlineNonBold(html, "rootObject", plane.rootObject());
+        appendKeyValueInlineNonBold(html, "initialValue", plane.initialValue());
+        appendKeyValueInlineNonBold(html, "sizeBound", plane.sizeBound());
+        appendKeyValueInlineNonBold(html, "initialized", plane.initialized());
+        appendKeyValueInlineNonBold(html, "symbolic", plane.symbolic());
     }
 
     private static NodeMemory.ObjectState mergeObjectState(NodeMemory.ObjectState a, NodeMemory.ObjectState b) {
-        // copy all fields from a
         NodeMemory.Plane mergedSegmentPlane = mergePlane(a.segmentPlane(), b.segmentPlane());
         NodeMemory.Plane mergedOffsetPlane = mergePlane(a.offsetPlane(), b.offsetPlane());
 
         return new NodeMemory.ObjectState(
                 a.objID(), a.type(), a.segment(), a.name(), a.size(), a.isLocal(), a.isGlobal(),
                 a.isFixed(), a.isUserSpec(), a.isLazy(), a.symAddress(), a.copyOnWriteOwner(),
-                a.readOnly(), mergedSegmentPlane, mergedOffsetPlane);
+                a.readOnly(), a.allocSite(), mergedSegmentPlane, mergedOffsetPlane);
     }
 
     private static NodeMemory.Plane mergePlane(NodeMemory.Plane a, NodeMemory.Plane b) {
@@ -364,22 +465,20 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
             return;
         }
 
-        int selected = Integer.parseInt(objectsList.getSelectedValue());
+        int selected = Integer.parseInt(objectsList.getSelectedValue().split(" ")[0]);
 
         boolean isDeletion = currentMemory.deletions().stream()
                 .anyMatch(deletion -> deletion.objID() == selected);
 
+        NodeMemory.ObjectState currentObjectState;
         if (isDeletion) {
-            segmentPanel.updateTables(null);
-            offsetPanel.updateTables(null);
-            handleDeletionClick(selected);
-            return;
+            currentObjectState = getDeletedObjectState(selected);
+        } else {
+            currentObjectState = objects.stream()
+                    .filter(obj -> obj.objID() == selected)
+                    .findFirst()
+                    .orElse(null);
         }
-
-        NodeMemory.ObjectState currentObjectState = objects.stream()
-                .filter(obj -> obj.objID() == selected)
-                .findFirst()
-                .orElse(null);
 
         if (currentObjectState != null) {
             NodeMemory.Plane offsetPlane = currentObjectState.offsetPlane();
@@ -402,20 +501,28 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         segmentPanel.updateTables(null);
         offsetPanel.updateTables(null);
 
-        int selectedID = Integer.parseInt(objectsList.getSelectedValue());
-
-        boolean isDeletion = currentMemory.deletions().stream()
-                .anyMatch(deletion -> deletion.objID() == selectedID);
-
-        if (isDeletion) {
-            handleDeletionClick(selectedID);
-        } else {
-            updatePlanes();
-            displayObjectInfo();
-        }
+        updatePlanes();
+        displayObjectInfo();
     }
 
-    private void handleDeletionClick(int objID) {
-        System.out.println("Deletion clicked: " + objID);
+    private NodeMemory.ObjectState getDeletedObjectState(int objID) {
+        Node current = currentState;
+
+        // search for the memory of the deleted object
+        while (true) {
+            NodeMemory.Memory memory = current.getMemory().getMemory();
+            for (NodeMemory.ObjectState addition : memory.additions()) {
+                if (addition.objID() == objID) {
+                    return addition;
+                }
+            }
+            for (NodeMemory.ObjectState change : memory.changes()) {
+                if (change.objID() == objID) {
+                    return change;
+                }
+            }
+            assert current.getParent() != null; // the node which was deleted must have been created before
+            current = current.getParent();
+        }
     }
 }

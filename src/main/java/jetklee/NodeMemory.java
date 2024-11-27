@@ -21,9 +21,9 @@ public class NodeMemory {
     }
 
     public record ObjectState(int objID, OperationType type, int segment, String name, String size, boolean isLocal,
-                              boolean isGlobal,
-                              boolean isFixed, boolean isUserSpec, boolean isLazy, String symAddress,
-                              int copyOnWriteOwner, boolean readOnly, Plane segmentPlane, Plane offsetPlane) {
+                              boolean isGlobal, boolean isFixed, boolean isUserSpec, boolean isLazy, String symAddress,
+                              int copyOnWriteOwner, boolean readOnly, AllocSite allocSite, Plane segmentPlane,
+                              Plane offsetPlane) {
     }
 
     public static class ByteMap extends HashMap<String, ArrayList<Integer>> {
@@ -103,15 +103,16 @@ public class NodeMemory {
         for (int i = 0; i < objectStatesJSON.length(); i++) {
             JSONObject objectStateJSON = objectStatesJSON.getJSONObject(i);
 
-//            AllocSite allocSite = null;
-//            if (objectStateJSON.has("allocSite")) {
-//                JSONObject allocSiteJSON = objectStateJSON.getJSONObject("allocSite");
-//                allocSite = new AllocSite(
-//                        allocSiteJSON.getString("scope"),
-//                        allocSiteJSON.getString("name"),
-//                        allocSiteJSON.getString("code")
-//                );
-//            }
+            AllocSite allocSite = null;
+            if (objectStateJSON.has("allocSite")) {
+                JSONObject allocSiteJSON = objectStateJSON.getJSONObject("allocSite");
+                
+                allocSite = new AllocSite(
+                        allocSiteJSON.has("scope") ? allocSiteJSON.getString("scope") : "",
+                        allocSiteJSON.has("name") ? allocSiteJSON.getString("name") : "",
+                        allocSiteJSON.has("code") ? allocSiteJSON.getString("code") : ""
+                );
+            }
 
             ObjectState objectState = new ObjectState(
                     objectStateJSON.getInt("objID"),
@@ -127,7 +128,7 @@ public class NodeMemory {
                     objectStateJSON.getString("symAddress"),
                     objectStateJSON.getInt("copyOnWriteOwner"),
                     objectStateJSON.getInt("readOnly") == 1,
-//                    allocSite,
+                    allocSite,
                     parsePlane(objectStateJSON, Plane.PlaneType.SEGMENT),
                     parsePlane(objectStateJSON, Plane.PlaneType.OFFSET)
             );
@@ -141,8 +142,8 @@ public class NodeMemory {
 
         for (int i = 0; i < bytesJSON.length(); ++i) {
             JSONObject byteObject = bytesJSON.getJSONObject(i);
-            String value = byteObject.keys().next(); // values of byte
-            JSONArray indicesJSON = byteObject.getJSONArray(value); // indices for this value
+            String value = byteObject.keys().next();
+            JSONArray indicesJSON = byteObject.getJSONArray(value);
             ArrayList<Integer> indices = new ArrayList<>();
 
             for (int j = 0; j < indicesJSON.length(); ++j) {
