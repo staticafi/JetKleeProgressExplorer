@@ -16,12 +16,12 @@ public class SourceViewerC extends SourceViewerBase {
 
     /**
      * Initializes C source code panel and displays line and column label.
-     * @param sourceLoader_ loads code from source.c file
+     *
+     * @param sourceLoader loads code from source.c file
      */
-
-    public SourceViewerC(SourceLoader sourceLoader_) {
+    public SourceViewerC(SourceLoader sourceLoader) {
         super();
-        sourceLoader = sourceLoader_;
+        this.sourceLoader = sourceLoader;
         lineColumnLabel = new JLabel("Ln 1, Col 1");
         lineColumnLabel.setOpaque(true);
         lineColumnLabel.setFont(new Font("Monospaced", Font.PLAIN, textFontSize));
@@ -30,7 +30,22 @@ public class SourceViewerC extends SourceViewerBase {
         statusPanel.add(lineColumnLabel, BorderLayout.EAST);
         add(statusPanel, BorderLayout.SOUTH);
 
-        MouseAdapter ma = new MouseAdapter() {
+        MouseAdapter ma = createMouseAdapter();
+        textArea.addMouseListener(ma);
+        textArea.addMouseMotionListener(ma);
+    }
+
+    @Override
+    public List<String> getSourceCodeLines() {
+        return sourceLoader.sourceC;
+    }
+
+    public void setSourceCodeLines() {
+        super.setSourceCodeLines();
+    }
+
+    private MouseAdapter createMouseAdapter() {
+        return new MouseAdapter() {
             private int lastIdx = -1;
 
             @Override
@@ -44,22 +59,12 @@ public class SourceViewerC extends SourceViewerBase {
                     } catch (BadLocationException ex) {
                         return;
                     }
-                    if (column > numLineColumnChars)
+                    if (column > numLineColumnChars) {
                         lineColumnLabel.setText("Ln " + (line + 1) + ", Col " + (column - numLineColumnChars));
+                    }
                     lastIdx = idx;
                 }
             }
         };
-        textArea.addMouseListener(ma);
-        textArea.addMouseMotionListener(ma);
-    }
-
-    @Override
-    public List<String> getSourceCodeLines() {
-        return sourceLoader.sourceC;
-    }
-
-    public void setSourceCodeLines() {
-        super.setSourceCodeLines();
     }
 }
