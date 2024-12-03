@@ -7,33 +7,30 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 
+import static jetklee.Styles.*;
+
 /**
  * Panel responsible for rendering and displaying the process tree.
  */
 
 public class TreeViewer extends JPanel {
-    public Tree tree;
-    public int selectedRound;
+
+    private float zoom;
+    private int selectedRound;
+    private Node selectedNode;
+    private Tree tree;
     private List<Dimension> areas;
     private Rectangle viewRect;
-    private float zoom;
     private static Font font = makeFont(1.0f);
-    private static final float minZoom = 0.0f;
-    private static final float maxZoom = 1.5f;
-    private static final float textZoomLimit = 0.2f;
-    private static final int borderSize = 100;
-    private static final int nodeSeparatorHorizontal = 25;
-    private static final int nodeSeparatorVertical = 200;
-    private static final int nodeWidth = 100;
-    private static final int nodeHeight = 50;
-    private static final Color RED_COLOR = Color.RED;
-    private static final Color GREEN_COLOR = new Color(34, 139, 34);
-    public static final Color DEFAULT_COLOR = Color.WHITE;
-    private static final Color nodeColor = Color.BLACK;
-
-    private static final float edgeThickness = 1.0f;
-
-    public Node selectedNode;
+    private static final float MIN_ZOOM = 0.0f;
+    private static final float MAX_ZOOM = 1.5f;
+    private static final float TEXT_ZOOM_LIMIT = 0.2f;
+    private static final int BORDER_SIZE = 100;
+    private static final int NODE_SEPARATOR_HORIZONTAL = 25;
+    private static final int NODE_SEPARATOR_VERTICAL = 200;
+    private static final int NODE_WIDTH = 100;
+    private static final int NODE_HEIGHT = 50;
+    private static final float EDGE_THICKNESS = 1.0f;
 
     /**
      * Enables mouse dragging to navigate through the process tree displayed in the tree panel.
@@ -83,9 +80,13 @@ public class TreeViewer extends JPanel {
      */
     public void onZoomChanged(int wheelRotations) {
         float newZoom = zoom + wheelRotations / 10.0f;
-        if (newZoom < minZoom || newZoom > maxZoom) return;
+
+        if (newZoom < MIN_ZOOM || newZoom > MAX_ZOOM){
+            return;
+        }
         Point mouse = getMousePosition();
         viewRect = new Rectangle(getVisibleRect());
+
         if (mouse != null) {
             viewRect.x += Math.round(newZoom / zoom * mouse.x) - mouse.x;
             viewRect.y += Math.round(newZoom / zoom * mouse.y) - mouse.y;
@@ -104,25 +105,16 @@ public class TreeViewer extends JPanel {
      */
     public Node onMouseClicked(int clickX, int clickY) {
         for (Node node : tree.getNodes().values()) {
-            int rectX = Math.round(zoom * (node.getViewProps().getX() - nodeWidth / 2));
-            int rectY = Math.round(zoom * (node.getViewProps().getY() - nodeHeight / 2));
-            boolean isInNode = (rectX <= clickX && clickX <= rectX + zoom * nodeWidth) && (rectY <= clickY && clickY <= rectY + zoom * nodeHeight);
+            int rectX = Math.round(zoom * (node.getViewProps().getX() - NODE_WIDTH / 2));
+            int rectY = Math.round(zoom * (node.getViewProps().getY() - NODE_HEIGHT / 2));
+            boolean isInNode = (rectX <= clickX && clickX <= rectX + zoom * NODE_WIDTH)
+                    && (rectY <= clickY && clickY <= rectY + zoom * NODE_HEIGHT);
+
             if (isVisibleNode(node, selectedRound) && isInNode) {
                 return node;
             }
         }
         return null;
-    }
-
-    private void drawCross(Graphics g, Node node) {
-        Graphics2D g2d = (Graphics2D) g;
-        g2d.setColor(Color.GRAY);
-        int nodeX = Math.round(zoom * node.getViewProps().getX());
-        int nodeY = Math.round(zoom * node.getViewProps().getY());
-        // Draw horizontal line
-        g2d.drawLine(0, nodeY, getWidth(), nodeY);
-        // Draw vertical line
-        g2d.drawLine(nodeX, 0, nodeX, getHeight());
     }
 
     /**
@@ -131,13 +123,13 @@ public class TreeViewer extends JPanel {
      */
     public void load() {
         if (tree.getRoot() == null) return;
-        computeNodeLocations(tree.getRoot(), borderSize + nodeWidth / 2, 0);
+        computeNodeLocations(tree.getRoot(), BORDER_SIZE + NODE_WIDTH / 2, 0);
 
         for (int i = 0; i < tree.getRoundCounter(); ++i) {
             Dimension area = new Dimension(0, 0);
             computeAreas(tree.getRoot(), i, area);
-            area.width += borderSize;
-            area.height += borderSize;
+            area.width += BORDER_SIZE;
+            area.height += BORDER_SIZE;
             areas.add(area);
         }
         updateArea();
@@ -147,8 +139,8 @@ public class TreeViewer extends JPanel {
             public void run() {
                 if (tree != null && tree.getRoot() != null) {
                     Rectangle rect = new Rectangle(getVisibleRect());
-                    rect.x = tree.getRoot().getViewProps().getX() + nodeWidth / 2 - (int) rect.getWidth() / 2;
-                    rect.y = tree.getRoot().getViewProps().getY() + nodeHeight / 2 - (int) rect.getHeight() / 2;
+                    rect.x = tree.getRoot().getViewProps().getX() + NODE_WIDTH / 2 - (int) rect.getWidth() / 2;
+                    rect.y = tree.getRoot().getViewProps().getY() + NODE_HEIGHT / 2 - (int) rect.getHeight() / 2;
                     scrollRectToVisible(rect);
                 }
             }
@@ -180,12 +172,24 @@ public class TreeViewer extends JPanel {
             Graphics2D g2d = (Graphics2D) g;
             g2d.setFont(font);
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2d.setStroke(new BasicStroke(edgeThickness));
+            g2d.setStroke(new BasicStroke(EDGE_THICKNESS));
             drawSubTree(g2d, tree.getRoot(), getVisibleRect());
             if (selectedNode != null) {
                 drawCross(g, selectedNode);
             }
         }
+    }
+
+    private void drawCross(Graphics g, Node node) {
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setColor(Color.GRAY);
+        int nodeX = Math.round(zoom * node.getViewProps().getX());
+        int nodeY = Math.round(zoom * node.getViewProps().getY());
+
+        // Horizontal line
+        g2d.drawLine(0, nodeY, getWidth(), nodeY);
+        // Vertical line
+        g2d.drawLine(nodeX, 0, nodeX, getHeight());
     }
 
     /**
@@ -199,18 +203,18 @@ public class TreeViewer extends JPanel {
     private int computeNodeLocations(Node node, int minX, int depth) {
         if (node.getLeft() != null && node.getRight() != null) {
             minX = Math.max(minX, computeNodeLocations(node.getLeft(), minX, depth + 1));
-            minX = Math.max(minX, computeNodeLocations(node.getRight(), minX + nodeWidth + nodeSeparatorHorizontal, depth + 1));
+            minX = Math.max(minX, computeNodeLocations(node.getRight(), minX + NODE_WIDTH + NODE_SEPARATOR_HORIZONTAL, depth + 1));
             node.getViewProps().setX((node.getLeft().getViewProps().getX() + node.getRight().getViewProps().getX()) / 2);
 
             node.getViewProps().setSubTreeMinX(node.getLeft().getViewProps().getSubTreeMinX());
             node.getViewProps().setSubTreeMaxX(node.getRight().getViewProps().getSubTreeMaxX());
         } else {
             node.getViewProps().setX(minX);
-            node.getViewProps().setSubTreeMinX(minX - nodeWidth / 2 - nodeSeparatorHorizontal / 2);
-            node.getViewProps().setSubTreeMaxX(minX + nodeWidth / 2 + nodeSeparatorHorizontal / 2);
+            node.getViewProps().setSubTreeMinX(minX - NODE_WIDTH / 2 - NODE_SEPARATOR_HORIZONTAL / 2);
+            node.getViewProps().setSubTreeMaxX(minX + NODE_WIDTH / 2 + NODE_SEPARATOR_HORIZONTAL / 2);
         }
 
-        node.getViewProps().setY(borderSize + depth * (nodeHeight + nodeSeparatorVertical));
+        node.getViewProps().setY(BORDER_SIZE + depth * (NODE_HEIGHT + NODE_SEPARATOR_VERTICAL));
         return minX;
     }
 
@@ -227,8 +231,8 @@ public class TreeViewer extends JPanel {
         computeAreas(node.getLeft(), round, area);
         computeAreas(node.getRight(), round, area);
 
-        area.width = Math.max(area.width, node.getViewProps().getX() + nodeWidth / 2);
-        area.height = Math.max(area.height, node.getViewProps().getY() + nodeHeight / 2);
+        area.width = Math.max(area.width, node.getViewProps().getX() + NODE_WIDTH / 2);
+        area.height = Math.max(area.height, node.getViewProps().getY() + NODE_HEIGHT / 2);
     }
 
     private boolean isVisibleNode(Node node, int round) {
@@ -238,9 +242,9 @@ public class TreeViewer extends JPanel {
     private void drawChild(Graphics2D g2d, Node child) {
         g2d.drawLine(
                 Math.round(zoom * child.getParent().getViewProps().getX()),
-                Math.round(zoom * (child.getParent().getViewProps().getY() + nodeHeight / 2)),
+                Math.round(zoom * (child.getParent().getViewProps().getY() + NODE_HEIGHT / 2)),
                 Math.round(zoom * child.getViewProps().getX()),
-                Math.round(zoom * (child.getViewProps().getY() - nodeHeight / 2))
+                Math.round(zoom * (child.getViewProps().getY() - NODE_HEIGHT / 2))
         );
         drawSubTree(g2d, child, getVisibleRect());
     }
@@ -259,10 +263,10 @@ public class TreeViewer extends JPanel {
                 zoom * node.getViewProps().getSubTreeMaxX() < visibleRect.x)
             return;
         // whole subtree under the visible rectangle
-        if (zoom * (node.getViewProps().getY() - nodeHeight / 2) > visibleRect.y + visibleRect.height)
+        if (zoom * (node.getViewProps().getY() - NODE_HEIGHT / 2) > visibleRect.y + visibleRect.height)
             return;
         // node above the visible rectangle
-        if (zoom * (node.getViewProps().getY() + nodeHeight + nodeSeparatorVertical) < visibleRect.y) {
+        if (zoom * (node.getViewProps().getY() + NODE_HEIGHT + NODE_SEPARATOR_VERTICAL) < visibleRect.y) {
             // decide for children
             if (node.getLeft() != null && isVisibleNode(node.getLeft(), selectedRound))
                 drawSubTree(g2d, node.getLeft(), getVisibleRect());
@@ -280,24 +284,32 @@ public class TreeViewer extends JPanel {
             drawChild(g2d, node.getRight());
         }
 
-        g2d.setColor(nodeColor);
+        g2d.setColor(BLACK_COLOR);
         g2d.drawRect(
-                Math.round(zoom * (node.getViewProps().getX() - nodeWidth / 2)),
-                Math.round(zoom * (node.getViewProps().getY() - nodeHeight / 2)),
-                Math.round(zoom * nodeWidth),
-                Math.round(zoom * nodeHeight)
+                Math.round(zoom * (node.getViewProps().getX() - NODE_WIDTH / 2)),
+                Math.round(zoom * (node.getViewProps().getY() - NODE_HEIGHT / 2)),
+                Math.round(zoom * NODE_WIDTH),
+                Math.round(zoom * NODE_HEIGHT)
         );
 
-        if (zoom >= textZoomLimit) {
+        if (zoom >= TEXT_ZOOM_LIMIT) {
             g2d.drawString(
                     Integer.toString(node.getId()),
-                    Math.round(zoom * (node.getViewProps().getX() - nodeWidth / 2)),
-                    Math.round(zoom * (node.getViewProps().getY() + nodeHeight / 4))
+                    Math.round(zoom * (node.getViewProps().getX() - NODE_WIDTH / 2)),
+                    Math.round(zoom * (node.getViewProps().getY() + NODE_HEIGHT / 4))
             );
         }
     }
 
     private static Font makeFont(float zoom) {
-        return font = new Font("Monospaced", Font.PLAIN, Math.round((0.75f * nodeHeight) * zoom));
+        return font = new Font(CODE_FONT, Font.PLAIN, Math.round((0.75f * NODE_HEIGHT) * zoom));
+    }
+
+    public void setSelectedRound(int selectedRound) {
+        this.selectedRound = selectedRound;
+    }
+
+    public void setSelectedNode(Node selectedNode) {
+        this.selectedNode = selectedNode;
     }
 }

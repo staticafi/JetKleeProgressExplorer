@@ -23,7 +23,7 @@ public class ContextViewer extends TextViewerBase {
         NodeInfo.Context context = info.getContext();
 
         String html =
-                "<html><body style=" + INFO_FONT + ">" +
+                "<html><body style='font-family:" + INFO_FONT + ";'>" +
                         createNodeInfoRow(context) +
                         createStateInfoRow(context) +
                         createLocationRow("location", context.location()) +

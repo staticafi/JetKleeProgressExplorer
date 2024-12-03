@@ -203,7 +203,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         if (e.getSource() != roundsList) return;
         if (roundsList.getValueIsAdjusting()) return;
         if (roundsList.getSelectedIndex() < 0) return;
-        treeViewer.selectedRound = roundsList.getSelectedIndex();
+        treeViewer.setSelectedRound(roundsList.getSelectedIndex());
         treeViewer.updateArea();
     }
 
@@ -291,7 +291,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
             if (nodeInfoTabbedPane.isVisible()) {
                 nodeInfoTabbedPane.setVisible(false);
                 treeViewer.repaint();
-                treeViewer.selectedNode = null;
+                treeViewer.setSelectedNode(null);
             }
             sourceC.removeHighLight();
             sourceLL.removeHighLight();
@@ -304,7 +304,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         if (node != null && SwingUtilities.isRightMouseButton(e)) {
             rightClickMenu.putClientProperty("node", node);
             rightClickMenu.show(e.getComponent(), e.getX(), e.getY());
-            treeViewer.selectedNode = node;
+            treeViewer.setSelectedNode(node);
             treeViewer.repaint();
         }
     }
