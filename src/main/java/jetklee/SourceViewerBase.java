@@ -3,16 +3,18 @@ package jetklee;
 import java.awt.*;
 import java.util.List;
 
+import static jetklee.Styles.CODE_FONT;
+
 /**
  * Displays source code.
  */
 public abstract class SourceViewerBase extends TextViewerBase {
-    protected static final int textFontSize = 14;
+    protected static final int CODE_FONT_SIZE = 14;
     protected int numLineColumnChars;
 
     public SourceViewerBase() {
         super();
-        textArea.setFont(new Font("Monospaced", Font.PLAIN, textFontSize));
+        textArea.setFont(new Font(CODE_FONT, Font.PLAIN, CODE_FONT_SIZE));
     }
 
     /**
@@ -20,8 +22,9 @@ public abstract class SourceViewerBase extends TextViewerBase {
      */
     public void setSourceCodeLines() {
         int lineColumnSize = 1;
-        for (int n = getSourceCodeLines().size(); n > 10; n /= 10)
+        for (int n = getSourceCodeLines().size(); n > 10; n /= 10) {
             ++lineColumnSize;
+        }
 
         numLineColumnChars = lineColumnSize + 2;
         String lineColumnFormat = "%" + lineColumnSize + "s";

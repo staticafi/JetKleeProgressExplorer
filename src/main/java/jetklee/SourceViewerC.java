@@ -7,6 +7,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 
+import static jetklee.Styles.CODE_FONT;
+
 /**
  * Displays C source code.
  */
@@ -24,7 +26,7 @@ public class SourceViewerC extends SourceViewerBase {
         this.sourceLoader = sourceLoader;
         lineColumnLabel = new JLabel("Ln 1, Col 1");
         lineColumnLabel.setOpaque(true);
-        lineColumnLabel.setFont(new Font("Monospaced", Font.PLAIN, textFontSize));
+        lineColumnLabel.setFont(new Font(CODE_FONT, Font.PLAIN, CODE_FONT_SIZE));
 
         JPanel statusPanel = new JPanel(new BorderLayout());
         statusPanel.add(lineColumnLabel, BorderLayout.EAST);
