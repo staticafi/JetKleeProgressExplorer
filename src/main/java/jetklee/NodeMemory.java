@@ -10,9 +10,6 @@ import java.util.HashMap;
  * Parses and holds information about execution state of the process tree
  */
 public class NodeMemory {
-    // TODO presunut nondet values do context
-
-
     public record Diff(ByteMap additions, ByteMap deletions) {
     }
 

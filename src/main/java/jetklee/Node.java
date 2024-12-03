@@ -6,10 +6,42 @@ package jetklee;
 public class Node {
 
     public class ViewProps {
-        int x = 0;
-        int y = 0;
-        int subTreeMinX = 0;
-        int subTreeMaxX = 0;
+        private int x = 0;
+        private int y = 0;
+        private int subTreeMinX = 0;
+        private int subTreeMaxX = 0;
+
+        public int getX() {
+            return x;
+        }
+
+        public int getY() {
+            return y;
+        }
+
+        public int getSubTreeMinX() {
+            return subTreeMinX;
+        }
+
+        public int getSubTreeMaxX() {
+            return subTreeMaxX;
+        }
+
+        public void setX(int x) {
+            this.x = x;
+        }
+
+        public void setY(int y) {
+            this.y = y;
+        }
+
+        public void setSubTreeMinX(int subTreeMinX) {
+            this.subTreeMinX = subTreeMinX;
+        }
+
+        public void setSubTreeMaxX(int subTreeMaxX) {
+            this.subTreeMaxX = subTreeMaxX;
+        }
     }
     private final int id;
     private int startRound;

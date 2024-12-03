@@ -228,8 +228,8 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         DefaultListModel<String> model = (DefaultListModel<String>) roundsList.getModel();
         model.clear();
 
-        for (int i = 0; i < tree.rounds.size(); ++i)
-            ((DefaultListModel<String>) roundsList.getModel()).addElement(tree.rounds.get(i));
+        for (int i = 0; i < tree.getRounds().size(); ++i)
+            ((DefaultListModel<String>) roundsList.getModel()).addElement(tree.getRounds().get(i));
         roundsList.setSelectedIndex(0);
         roundsList.ensureIndexIsVisible(0);
         roundsList.revalidate();
