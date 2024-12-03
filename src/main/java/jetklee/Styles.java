@@ -7,12 +7,15 @@ import java.awt.*;
  */
 public class Styles {
     // html styles
-    public static final String BLUE_STYLE = "'color:blue;'";
+    public static final String KEY_COLOR = "'color:blue;'";
 
     // colors
-    public static final Color RED_COLOR = new Color(255, 0, 0, 125);
-    public static final Color GREEN_COLOR = new Color(34, 139, 34, 125);
+    public static final Color DELETIONS_COLOR = new Color(255, 0, 0, 125);
+    public static final Color ADDITIONS_COLOR = new Color(34, 139, 34, 125);
+    public static final Color CHANGE_COLOR = new Color(0, 0, 255, 125);
+    public static final Color CODE_HIGH_LIGHT_COLOR = new Color(255, 255, 0, 125);
     public static final Color BLACK_COLOR = Color.BLACK;
+    public static final Color BACKGROUND_COLOR = Color.WHITE;
 
 //    private static final Color ORANGE_COLOR = new Color(255, 165, 0, 125);
 

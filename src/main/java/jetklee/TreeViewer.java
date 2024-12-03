@@ -46,7 +46,14 @@ public class TreeViewer extends JPanel {
         viewRect = null;
 
         setAutoscrolls(true);
-        MouseAdapter ma = new MouseAdapter() {
+        MouseAdapter ma = createMouseAdapter();
+        addMouseListener(ma);
+        addMouseMotionListener(ma);
+    }
+
+    private MouseAdapter createMouseAdapter() {
+        return new MouseAdapter() {
+
             private Point origin = null;
 
             @Override
@@ -69,8 +76,6 @@ public class TreeViewer extends JPanel {
                 }
             }
         };
-        addMouseListener(ma);
-        addMouseMotionListener(ma);
     }
 
     /**
@@ -81,7 +86,7 @@ public class TreeViewer extends JPanel {
     public void onZoomChanged(int wheelRotations) {
         float newZoom = zoom + wheelRotations / 10.0f;
 
-        if (newZoom < MIN_ZOOM || newZoom > MAX_ZOOM){
+        if (newZoom < MIN_ZOOM || newZoom > MAX_ZOOM) {
             return;
         }
         Point mouse = getMousePosition();
@@ -276,11 +281,11 @@ public class TreeViewer extends JPanel {
         }
 
         if (node.getLeft() != null && isVisibleNode(node.getLeft(), selectedRound)) {
-            g2d.setColor(RED_COLOR);
+            g2d.setColor(DELETIONS_COLOR);
             drawChild(g2d, node.getLeft());
         }
         if (node.getRight() != null && isVisibleNode(node.getRight(), selectedRound)) {
-            g2d.setColor(GREEN_COLOR);
+            g2d.setColor(ADDITIONS_COLOR);
             drawChild(g2d, node.getRight());
         }
 

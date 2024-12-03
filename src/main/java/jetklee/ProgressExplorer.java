@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.io.File;
 import java.util.prefs.Preferences;
 
+//import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
 /**
@@ -25,35 +26,81 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
     private JPanel rootPanel;
     private JList<String> roundsList;
     private JTabbedPane mainTabbedPane;
-    private JTabbedPane nodeInfoTabbedPane;
+    private JTabbedPane nodeTabbedPane;
     private JSplitPane splitPane;
     private JScrollPane roundScrollPane;
     private JSplitPane mainSplitPane;
     private JPanel treePanel;
-    private JScrollPane treeScrollPane;
     private ConstraintsViewer constraintsViewer;
     private MemoryViewer memoryViewer;
     private ContextViewer contextViewer;
     private JPopupMenu rightClickMenu;
-    private float divider;
-
     private JMenuBar menuBar;
 
     public ProgressExplorer() {
+        initializeSourceViewer();
+        initliazeTreeViewer();
+        initializeNodePanel();
+        arrangePanels();
+        createRightClickMenu();
+        createOpenMenu();
+    }
+
+    private void createOpenMenu() {
+        menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+        JMenuItem openMenuItem = new JMenuItem("Open");
+        openMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                openFile();
+            }
+        });
+        fileMenu.add(openMenuItem);
+        menuBar.add(fileMenu);
+    }
+
+    private void createRightClickMenu() {
+        rightClickMenu = new JPopupMenu();
+        NodeAction[] nodeActions = new NodeAction[]{NodeAction.NODE_INFO, NodeAction.NODE_TO_C, NodeAction.NODE_TO_LL};
+        for (NodeAction nodeAction : nodeActions) {
+            JMenuItem newItem = new JMenuItem(nodeAction.value);
+            newItem.addActionListener(this);
+            newItem.setActionCommand(nodeAction.value);
+            rightClickMenu.add(newItem);
+        }
+    }
+
+    private void arrangePanels() {
+        mainTabbedPane = new JTabbedPane(JTabbedPane.TOP);
+        mainTabbedPane.addTab("Tree", treePanel);
+        mainTabbedPane.addTab("C", sourceC);
+        mainTabbedPane.addTab("LL", sourceLL);
+
+        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mainTabbedPane, nodeTabbedPane);
+        splitPane.setResizeWeight(0.1);
+        splitPane.setDividerLocation(0.1);
+
+        mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, roundScrollPane, splitPane);
+        mainSplitPane.setResizeWeight(0.1);
+        mainSplitPane.setDividerLocation(0.1);
+
+        rootPanel = new JPanel(new BorderLayout());
+        rootPanel.add(mainSplitPane, BorderLayout.CENTER);
+    }
+
+    private void initializeSourceViewer() {
+        sourceLoader = new SourceLoader();
+        sourceC = new SourceViewerC(sourceLoader);
+        sourceLL = new SourceViewerLL(sourceLoader);
+    }
+
+    private void initliazeTreeViewer() {
         tree = new Tree();
         treeViewer = new TreeViewer(tree);
         treeViewer.addMouseListener(this);
 
-        sourceLoader = new SourceLoader();
-        sourceC = new SourceViewerC(sourceLoader);
-        sourceLL = new SourceViewerLL(sourceLoader);
-
-        constraintsViewer = new ConstraintsViewer();
-        memoryViewer = new MemoryViewer();
-        contextViewer = new ContextViewer();
-        divider = 0.5f;
-
-        treeScrollPane = new JScrollPane(treeViewer);
+        JScrollPane treeScrollPane = new JScrollPane(treeViewer);
         treeScrollPane.setWheelScrollingEnabled(false);
         treeScrollPane.addMouseWheelListener(new MouseWheelListener() {
             @Override
@@ -68,80 +115,49 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         roundsList.addListSelectionListener(this);
         roundsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         roundScrollPane = new JScrollPane(roundsList);
+    }
 
-        mainTabbedPane = new JTabbedPane(JTabbedPane.TOP);
-        mainTabbedPane.addTab("Tree", treePanel);
-        mainTabbedPane.addTab("C", sourceC);
-        mainTabbedPane.addTab("LL", sourceLL);
+    private void initializeNodePanel() {
+        constraintsViewer = new ConstraintsViewer();
+        memoryViewer = new MemoryViewer();
+        contextViewer = new ContextViewer();
 
-        nodeInfoTabbedPane = new JTabbedPane(JTabbedPane.TOP);
-        nodeInfoTabbedPane.addTab("Context", contextViewer);
-        nodeInfoTabbedPane.addTab("Constraints", constraintsViewer);
-        nodeInfoTabbedPane.addTab("Memory", memoryViewer);
-        nodeInfoTabbedPane.setVisible(false);
-
-        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mainTabbedPane, nodeInfoTabbedPane);
-        splitPane.setResizeWeight(0.1);
-        splitPane.setDividerLocation(0.1);
-
-        mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, roundScrollPane, splitPane);
-        mainSplitPane.setResizeWeight(0.1);
-        mainSplitPane.setDividerLocation(0.1);
-
-        rootPanel = new JPanel(new BorderLayout());
-        rootPanel.add(mainSplitPane, BorderLayout.CENTER);
-
-        rightClickMenu = new JPopupMenu();
-        NodeAction[] nodeActions = new NodeAction[]{NodeAction.NODE_INFO, NodeAction.NODE_TO_C, NodeAction.NODE_TO_LL};
-        for (NodeAction nodeAction : nodeActions) {
-            JMenuItem newItem = new JMenuItem(nodeAction.value);
-            newItem.addActionListener(this);
-            newItem.setActionCommand(nodeAction.value);
-            rightClickMenu.add(newItem);
-        }
-
-        menuBar = new JMenuBar();
-        JMenu fileMenu = new JMenu("File");
-        JMenuItem openMenuItem = new JMenuItem("Open");
-
-        openMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                openFile();
-            }
-        });
-        fileMenu.add(openMenuItem);
-        menuBar.add(fileMenu);
+        nodeTabbedPane = new JTabbedPane(JTabbedPane.TOP);
+        nodeTabbedPane.addTab("Context", contextViewer);
+        nodeTabbedPane.addTab("Constraints", constraintsViewer);
+        nodeTabbedPane.addTab("Memory", memoryViewer);
+        nodeTabbedPane.setVisible(false);
     }
 
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             /**
              * Initializes and displays the main application window. Loads recorded data from directory specified by
-             * command line argument.
+             * optional command line argument.
              */
             public void run() {
                 double startTime = System.currentTimeMillis();
 
-                UIManager.put( "TabbedPane.selectedBackground", Color.white );
-                FlatLightLaf.setGlobalExtraDefaults( Collections.singletonMap( "@accentColor", "#ADD8E6" ) );
+                FlatLightLaf.setGlobalExtraDefaults(Collections.singletonMap("@accentColor", "#ADD8E6"));
                 try {
-                    UIManager.setLookAndFeel( new FlatLightLaf() );
-                } catch( Exception ex ) {
-                    System.err.println( "Failed to initialize LaF" );
+                    UIManager.setLookAndFeel(new FlatLightLaf());
+                } catch (Exception ex) {
+                    System.err.println("Failed to initialize LaF");
                 }
 
-                JFrame frame = new JFrame("JetKlee: ProgressExplorer");
+                JFrame frame = new JFrame("JetKlee Progress Explorer");
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.setPreferredSize(new Dimension(800, 600));
 
                 ProgressExplorer explorer = new ProgressExplorer();
-                if (args.length != ARGS_COUNT)
+                if (args.length == ARGS_COUNT) {
+                    explorer.load(Paths.get(args[0]).toAbsolutePath().toString());
+                }
+                if (args.length > ARGS_COUNT) {
                     throw new IllegalArgumentException("Invalid number of arguments. Expected " + ARGS_COUNT + " arguments.");
-                explorer.load(Paths.get(args[0]).toAbsolutePath().toString());
+                }
 
                 frame.setJMenuBar(explorer.menuBar);
-
                 frame.setContentPane(explorer.rootPanel);
                 frame.pack();
                 frame.setVisible(true);
@@ -153,6 +169,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
             }
         });
     }
+
     private void openFile() {
         Preferences prefs = Preferences.userNodeForPackage(ProgressExplorer.class);
         String lastDirectory = prefs.get("lastDirectory", System.getProperty("user.home"));
@@ -164,13 +181,12 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         int result = fileChooser.showOpenDialog(rootPanel);
         if (result == JFileChooser.APPROVE_OPTION) {
             File selectedDir = fileChooser.getSelectedFile();
-
-            File newDir = new File(selectedDir, "__JetKleeProgressRecording__");
-            load(newDir.getAbsolutePath());
             prefs.put("lastDirectory", selectedDir.getAbsolutePath());
+
+            File recordingDir = new File(selectedDir, "__JetKleeProgressRecording__");
+            load(recordingDir.getAbsolutePath());
         }
     }
-
 
     private enum TabbedPane {
         TREE_PANE, C_PANE, LL_PANE;
@@ -180,8 +196,8 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         NODE_INFO("Node Information"), NODE_TO_C("C"), NODE_TO_LL("LL");
         private final String value;
 
-        NodeAction(String value_) {
-            value = value_;
+        NodeAction(String value) {
+            this.value = value;
         }
 
         private static NodeAction parse(String actionStr) throws Exception {
@@ -195,14 +211,14 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
     }
 
     /**
-     * Updates current round based on the round selected in the list menu.
+     * Updates current tree view based on the round selected in the list menu.
      *
      * @param e the event that characterizes the change in the list menu.
      */
     public void valueChanged(ListSelectionEvent e) {
-        if (e.getSource() != roundsList) return;
-        if (roundsList.getValueIsAdjusting()) return;
-        if (roundsList.getSelectedIndex() < 0) return;
+        if (e.getSource() != roundsList || roundsList.getValueIsAdjusting() || roundsList.getSelectedIndex() < 0) {
+            return;
+        }
         treeViewer.setSelectedRound(roundsList.getSelectedIndex());
         treeViewer.updateArea();
     }
@@ -218,7 +234,6 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
             sourceLoader.load(dir);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(rootPanel, "Load has FAILED: " + e);
-            rootPanel.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
             return;
         }
         treeViewer.load();
@@ -228,8 +243,9 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         DefaultListModel<String> model = (DefaultListModel<String>) roundsList.getModel();
         model.clear();
 
-        for (int i = 0; i < tree.getRounds().size(); ++i)
-            ((DefaultListModel<String>) roundsList.getModel()).addElement(tree.getRounds().get(i));
+        for (int i = 0; i < tree.getRounds().size(); ++i) {
+            model.addElement(tree.getRounds().get(i));
+        }
         roundsList.setSelectedIndex(0);
         roundsList.ensureIndexIsVisible(0);
         roundsList.revalidate();
@@ -254,12 +270,12 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
      *
      * @param node the node for which information is displayed.
      */
-    private void displayNodeInfoPane(Node node) {
+    private void displayNodePane(Node node) {
         contextViewer.displayContext(node.getInfo());
         constraintsViewer.displayConstraints(node.getInfo().getConstraints());
         memoryViewer.displayMemory(node, sourceLL);
 
-        nodeInfoTabbedPane.setVisible(true);
+        nodeTabbedPane.setVisible(true);
         splitPane.setDividerLocation(0.5);
         selectCodeLine(node, TabbedPane.TREE_PANE);
     }
@@ -279,7 +295,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         }
         Node node = (Node) rightClickMenu.getClientProperty("node");
         switch (action) {
-            case NODE_INFO -> displayNodeInfoPane(node);
+            case NODE_INFO -> displayNodePane(node);
             case NODE_TO_C -> selectCodeLine(node, TabbedPane.C_PANE);
             case NODE_TO_LL -> selectCodeLine(node, TabbedPane.LL_PANE);
         }
@@ -288,8 +304,8 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
     @Override
     public void mouseClicked(MouseEvent e) {
         if (SwingUtilities.isRightMouseButton(e)) {
-            if (nodeInfoTabbedPane.isVisible()) {
-                nodeInfoTabbedPane.setVisible(false);
+            if (nodeTabbedPane.isVisible()) {
+                nodeTabbedPane.setVisible(false);
                 treeViewer.repaint();
                 treeViewer.setSelectedNode(null);
             }
