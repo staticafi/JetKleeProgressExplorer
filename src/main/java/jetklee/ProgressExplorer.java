@@ -290,6 +290,8 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         if (SwingUtilities.isRightMouseButton(e)) {
             if (nodeInfoTabbedPane.isVisible()) {
                 nodeInfoTabbedPane.setVisible(false);
+                treeViewer.repaint();
+                treeViewer.selectedNode = null;
             }
             sourceC.removeHighLight();
             sourceLL.removeHighLight();
@@ -302,6 +304,8 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         if (node != null && SwingUtilities.isRightMouseButton(e)) {
             rightClickMenu.putClientProperty("node", node);
             rightClickMenu.show(e.getComponent(), e.getX(), e.getY());
+            treeViewer.selectedNode = node;
+            treeViewer.repaint();
         }
     }
 

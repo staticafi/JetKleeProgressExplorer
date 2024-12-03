@@ -9,12 +9,15 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
     private final List<NodeMemory.ObjectState> objects;
     private final List<NodeMemory.Deletion> deletions;
 
+    private boolean showAll;
+
     private static final Color RED_COLOR = new Color(255, 0, 0, 125);
     private static final Color GREEN_COLOR = new Color(34, 139, 34, 125);
 
-    public CustomListCellRenderer(List<NodeMemory.ObjectState> objects, List<NodeMemory.Deletion> deletions) {
+    public CustomListCellRenderer(List<NodeMemory.ObjectState> objects, List<NodeMemory.Deletion> deletions, boolean showAll) {
         this.objects = objects;
         this.deletions = deletions;
+        this.showAll = showAll;
     }
 
     @Override
@@ -31,7 +34,11 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
         } else if (objectState != null) {
             switch (objectState.type()) {
                 case ADDITION:
-                    label.setBackground(GREEN_COLOR);
+                    if (showAll) {
+                        label.setBackground(Color.WHITE);
+                    } else {
+                        label.setBackground(GREEN_COLOR);
+                    }
                     break;
                 case CHANGE:
                     label.setBackground(Color.ORANGE);
@@ -71,10 +78,11 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
         return null;
     }
 
-    public void updateObjectList(List<NodeMemory.ObjectState> newObjects, List<NodeMemory.Deletion> newDeletions) {
+    public void updateObjectList(List<NodeMemory.ObjectState> newObjects, List<NodeMemory.Deletion> newDeletions, boolean showAll) {
         this.objects.clear();
         this.objects.addAll(newObjects);
         this.deletions.clear();
         this.deletions.addAll(newDeletions);
+        this.showAll = showAll;
     }
 }

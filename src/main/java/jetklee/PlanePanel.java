@@ -23,7 +23,7 @@ public class PlanePanel extends JPanel {
 
         sortByOffsetCheckBox = new JCheckBox("Sort by Offset");
         sortByOffsetCheckBox.setSelected(true);
-        sortByOffsetCheckBox.addActionListener(e -> updateTables(currentPlane));
+        sortByOffsetCheckBox.addActionListener(e -> updateTables(currentPlane, false));
 
         JPanel controlPanel = new JPanel(new BorderLayout());
         controlPanel.add(sortByOffsetCheckBox, BorderLayout.NORTH);
@@ -57,7 +57,7 @@ public class PlanePanel extends JPanel {
         panel.repaint();
     }
 
-    private void updateBytesTable(NodeMemory.ByteMap additions, NodeMemory.ByteMap deletions, JPanel bytePanel, String[] byteColumns, boolean isConcrete) {
+    private void updateBytesTable(NodeMemory.ByteMap additions, NodeMemory.ByteMap deletions, JPanel bytePanel, String[] byteColumns, boolean isConcrete, boolean showAll) {
         if (additions.isEmpty() && deletions.isEmpty()) {
             clearTable(bytePanel);
             return;
@@ -66,8 +66,8 @@ public class PlanePanel extends JPanel {
         ArrayList<Object[]> byteEntries = new ArrayList<>();
         ArrayList<Color> rowColors = new ArrayList<>();
 
-        createByteRows(byteEntries, rowColors, additions, GREEN_COLOR, byteColumns, currentPlane.concreteMask().additions(), isConcrete);
-        createByteRows(byteEntries, rowColors, deletions, RED_COLOR, byteColumns, currentPlane.concreteMask().additions(), isConcrete);
+        createByteRows(byteEntries, rowColors, additions, showAll ? Color.WHITE : GREEN_COLOR, byteColumns, currentPlane.concreteMask().additions(), isConcrete);
+        createByteRows(byteEntries, rowColors, deletions, showAll ? Color.WHITE : RED_COLOR, byteColumns, currentPlane.concreteMask().additions(), isConcrete);
 
         if (sortByOffsetCheckBox.isSelected()) {
             ArrayList<Integer> indices = new ArrayList<>();
@@ -116,9 +116,9 @@ public class PlanePanel extends JPanel {
                 int row = byteTable.rowAtPoint(e.getPoint());
                 int column = byteTable.columnAtPoint(e.getPoint());
 
-                if (column == 1) {
+                if (column == 1 && !isConcrete) {
                     Object value = byteTable.getValueAt(row, column);
-                    boolean isSymbolic = byteTable.getValueAt(row, 2) == "false";
+                    boolean isSymbolic = byteTable.getValueAt(row, 2) == "true";
                     if (value != null && value != "" && isSymbolic) {
                         showPopup(value.toString(), "Value");
                     }
@@ -230,7 +230,7 @@ public class PlanePanel extends JPanel {
         return updateTable;
     }
 
-    public void updateTables(NodeMemory.Plane plane) {
+    public void updateTables(NodeMemory.Plane plane, boolean showAll) {
         if (plane == null) {
             clearTable(updatePanel);
             clearTable(concretePanel);
@@ -239,8 +239,8 @@ public class PlanePanel extends JPanel {
         }
 
         this.currentPlane = plane;
-        updateBytesTable(currentPlane.concreteStore().additions(), currentPlane.concreteStore().deletions(), concretePanel, concreteColumns, true);
-        updateBytesTable(currentPlane.knownSymbolics().additions(), currentPlane.knownSymbolics().deletions(), symbolicPanel, symbolicColumns, false);
+        updateBytesTable(currentPlane.concreteStore().additions(), currentPlane.concreteStore().deletions(), concretePanel, concreteColumns, true, showAll);
+        updateBytesTable(currentPlane.knownSymbolics().additions(), currentPlane.knownSymbolics().deletions(), symbolicPanel, symbolicColumns, false, showAll);
         updateUpdatesTable(currentPlane);
     }
 

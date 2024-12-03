@@ -59,10 +59,22 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
 
         this.add(showAllButton, BorderLayout.NORTH);
 
+        JPanel segment = new JPanel(new BorderLayout());
+        JPanel offset = new JPanel(new BorderLayout());
+
         segmentPanel = new PlanePanel();
-        segmentPanel.setBorder(new TitledBorder("Segment"));
         offsetPanel = new PlanePanel();
-        offsetPanel.setBorder(new TitledBorder("Offset"));
+
+        segment.add(segmentPanel, BorderLayout.CENTER);
+        offset.add(offsetPanel, BorderLayout.CENTER);
+
+        JTabbedPane planesTabbedPane = new JTabbedPane(JTabbedPane.TOP);
+
+        planesTabbedPane.addTab("Offset", offset);
+        planesTabbedPane.addTab("Segment", segment);
+
+        this.add(planesTabbedPane);
+
         objectInfoPanel = new JPanel(new BorderLayout());
         objectInfoPanel.setBorder(new TitledBorder("Object Info"));
 
@@ -75,7 +87,7 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         objectsList.setBorder(new TitledBorder("Objects"));
         objectsList.addListSelectionListener(this);
         objectsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        objectsList.setCellRenderer(new CustomListCellRenderer(objects, new ArrayList<>()));
+        objectsList.setCellRenderer(new CustomListCellRenderer(objects, new ArrayList<>(), showAll));
 
         objectScrollPane = new JScrollPane(objectsList);
         objectsPanel.add(objectScrollPane, BorderLayout.CENTER);
@@ -141,11 +153,7 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
 
         objectsPanel.add(entryField, BorderLayout.NORTH);
 
-        planesSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, segmentPanel, offsetPanel);
-        planesSplitPane.setDividerLocation(0.5);
-        planesSplitPane.setResizeWeight(0.5);
-
-        objectStateSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, planesSplitPane, objectInfoPanel);
+        objectStateSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, planesTabbedPane, objectInfoPanel);
         objectStateSplitPane.setDividerLocation(0.9);
         objectStateSplitPane.setResizeWeight(0.9);
 
@@ -157,8 +165,8 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
     }
 
     private void displayTables(NodeMemory.Memory memory) {
-        segmentPanel.updateTables(null);
-        offsetPanel.updateTables(null);
+        segmentPanel.updateTables(null, showAll);
+        offsetPanel.updateTables(null, showAll);
 
         objects = new ArrayList<>();
         objects.addAll(memory.additions());
@@ -171,7 +179,7 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
 
         objects.addAll(deletions);
 
-        ((CustomListCellRenderer) objectsList.getCellRenderer()).updateObjectList(objects, memory.deletions());
+        ((CustomListCellRenderer) objectsList.getCellRenderer()).updateObjectList(objects, memory.deletions(), showAll);
         ((DefaultListModel<String>) objectsList.getModel()).clear();
 
         int maxDigits = 0;
@@ -455,8 +463,8 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
 
     private void updatePlanes() {
         if (objectsList.getModel().getSize() == 0) {
-            segmentPanel.updateTables(null);
-            offsetPanel.updateTables(null);
+            segmentPanel.updateTables(null, showAll);
+            offsetPanel.updateTables(null, showAll);
             return;
         }
 
@@ -471,11 +479,11 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         if (currentObjectState != null) {
             NodeMemory.Plane offsetPlane = currentObjectState.offsetPlane();
             NodeMemory.Plane segmentPlane = currentObjectState.segmentPlane();
-            segmentPanel.updateTables(segmentPlane);
-            offsetPanel.updateTables(offsetPlane);
+            segmentPanel.updateTables(segmentPlane, showAll);
+            offsetPanel.updateTables(offsetPlane, showAll);
         } else {
-            segmentPanel.updateTables(null);
-            offsetPanel.updateTables(null);
+            segmentPanel.updateTables(null, showAll);
+            offsetPanel.updateTables(null, showAll);
         }
     }
 
@@ -486,8 +494,8 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         if (objectsList.getSelectedIndex() < 0) return;
 
         // remove table headers for empty tables
-        segmentPanel.updateTables(null);
-        offsetPanel.updateTables(null);
+        segmentPanel.updateTables(null, showAll);
+        offsetPanel.updateTables(null, showAll);
 
         updatePlanes();
         displayObjectInfo();
