@@ -4,7 +4,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 
-public class ConstraintsViewer extends JPanel {
+/**
+ * Panel that displays constraints of selected execution state.
+ * Allows to switch between original and formatted view.
+ */
+public class ConstraintsViewer extends TextViewerBase {
     private boolean showOriginal;
     private ArrayList<String> constraints;
     private JButton toggleButton;
@@ -31,6 +35,11 @@ public class ConstraintsViewer extends JPanel {
         this.add(toggleButton, BorderLayout.NORTH);
     }
 
+    /**
+     * Displays constraints (original or formatted) in the panel.
+     *
+     * @param constraints to display.
+     */
     public void displayConstraints(ArrayList<String> constraints) {
         this.constraints = constraints;
         StringBuilder constraintsStr = new StringBuilder();

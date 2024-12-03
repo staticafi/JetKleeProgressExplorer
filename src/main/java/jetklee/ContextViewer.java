@@ -2,73 +2,87 @@ package jetklee;
 
 import javax.swing.*;
 
+import static jetklee.Styles.BLUE_STYLE;
+import static jetklee.Styles.INFO_FONT;
+
 /**
- * Panel that displays context of selected execution state
+ * Panel that displays context of selected execution state.
  */
 public class ContextViewer extends TextViewerBase {
+
     public ContextViewer() {
         super();
     }
 
+    /**
+     * Displays context of selected execution state in the Context panel.
+     *
+     * @param info to display.
+     */
     public void displayContext(NodeInfo info) {
         NodeInfo.Context context = info.getContext();
 
-        StringBuilder htmlBuilder = new StringBuilder();
-        htmlBuilder.append("<html><body style='font-family:sans-serif;'>");
+        String html =
+                "<html><body style=" + INFO_FONT + ">" +
+                        createNodeInfoRow(context) +
+                        createStateInfoRow(context) +
+                        createLocationRow("location", context.location()) +
+                        createLocationRow("nextLocation", context.nextLocation()) +
+                        createStackRow(context) +
+                        "</body></html>";
 
-        // ROW 1: nodeID, stateID, parentID, nextID, depth
-        htmlBuilder.append("<div><b style='color:blue;'>nodeId:</b> ")
-                .append(context.nodeID()).append("<br>")
-                .append("<span style='color:blue;'>stateId:</span> ").append(context.stateID()).append(" ")
-                .append("<span style='color:blue;'>parentId:</span> ").append(context.parentID()).append(" ")
-                .append("<span style='color:blue;'>nextId:</span> ").append(context.nextID()).append(" ")
-                .append("<span style='color:blue;'>depth:</span> ").append(context.depth())
-                .append("</div>");
-
-        // ROW 2: uniqueState, coveredNew, forkDisabled, instsSinceCovNew, steppedInstructions
-        htmlBuilder.append("<div><span style='color:blue;'>uniqueState:</span> ").append(context.uniqueState()).append(" ")
-                .append("<span style='color:blue;'>coveredNew:</span> ").append(context.coveredNew()).append(" ")
-                .append("<span style='color:blue;'>forkDisabled:</span> ").append(context.forkDisabled()).append(" ")
-                .append("<span style='color:blue;'>instsSinceCovNew:</span> ").append(context.instsSinceCovNew()).append(" ")
-                .append("<span style='color:blue;'>steppedInstructions:</span> ").append(context.steppedInstructions())
-                .append("</div>")
-                .append("<br>");
-
-        // ROW 3: location
-        htmlBuilder.append("<div><b style='color:blue;'>location:</b><br>")
-                .append(formatLocationAsList(context.location()))
-                .append("</div>")
-                .append("<br>");
-
-        // ROW 4: nextLocation
-        htmlBuilder.append("<div><b style='color:blue;'>nextLocation:</b><br>")
-                .append(formatLocationAsList(context.nextLocation()))
-                .append("</div>")
-                .append("<br>");
-
-        // ROW 5: stack (Values normal)
-        htmlBuilder.append("<div><b style='color:blue;'>stack:</b><br>");
-        for (NodeInfo.Location stackLocation : context.stack()) {
-            htmlBuilder.append("&nbsp;&nbsp;- <span style='color:blue;'>file:</span> ").append(stackLocation.file())
-                    .append(" <span style='color:blue;'>line:</span> ").append(stackLocation.line())
-                    .append(" <span style='color:blue;'>column:</span> ").append(stackLocation.column())
-                    .append("<br>");
-        }
-        htmlBuilder.append("</div>");
-
-        htmlBuilder.append("</body></html>");
-
-        JEditorPane editorPane = new JEditorPane("text/html", htmlBuilder.toString());
-        editorPane.setEditable(false);
-        removeAll();
-        add(new JScrollPane(editorPane));
-        revalidate();
+        displayInEditorPane(html);
     }
 
-    private String formatLocationAsList(NodeInfo.Location location) {
-        return "&nbsp;&nbsp;- <span style='color:blue;'>file:</span> " + location.file() + "<br>"
-                + "&nbsp;&nbsp;- <span style='color:blue;'>line:</span> " + location.line() + "<br>"
-                + "&nbsp;&nbsp;- <span style='color:blue;'>column:</span> " + location.column() + "<br>"
-                + "&nbsp;&nbsp;- <span style='color:blue;'>assemblyLine:</span> " + location.assemblyLine() + "<br>";
+    private String createNodeInfoRow(NodeInfo.Context context) {
+        return "<div><b><span style=" + BLUE_STYLE + ">nodeId:</span></b> " + context.nodeID() + "</div>" +
+                "<div><span style=" + BLUE_STYLE + ">stateId:</span> " + context.stateID() +
+                " <span style=" + BLUE_STYLE + ">parentId:</span> " + context.parentID() +
+                " <span style=" + BLUE_STYLE + ">nextId:</span> " + context.nextID() +
+                " <span style=" + BLUE_STYLE + ">depth:</span> " + context.depth() +
+                "</div>";
+    }
+
+    private String createStateInfoRow(NodeInfo.Context context) {
+        return "<div><span style=" + BLUE_STYLE + ">uniqueState:</span> " + context.uniqueState() +
+                " <span style=" + BLUE_STYLE + ">coveredNew:</span> " + context.coveredNew() +
+                " <span style=" + BLUE_STYLE + ">forkDisabled:</span> " + context.forkDisabled() +
+                " <span style=" + BLUE_STYLE + ">instsSinceCovNew:</span> " + context.instsSinceCovNew() +
+                " <span style=" + BLUE_STYLE + ">steppedInstructions:</span> " + context.steppedInstructions() +
+                "</div><br>";
+    }
+
+    private String createLocationRow(String label, NodeInfo.Location location) {
+        String formattedLocation =
+                "&nbsp;&nbsp;- <span style=" + BLUE_STYLE + ">file:</span> " + location.file() + "<br>" +
+                        "&nbsp;&nbsp;- <span style=" + BLUE_STYLE + ">line:</span> " + location.line() + "<br>" +
+                        "&nbsp;&nbsp;- <span style=" + BLUE_STYLE + ">column:</span> " + location.column() + "<br>" +
+                        "&nbsp;&nbsp;- <span style=" + BLUE_STYLE + ">assemblyLine:</span> " + location.assemblyLine() + "<br>";
+
+        return "<div><b><span style=" + BLUE_STYLE + ">" + label + ":</span></b><br>" +
+                formattedLocation + "</div><br>";
+    }
+
+    private String createStackRow(NodeInfo.Context context) {
+        StringBuilder stackBuilder = new StringBuilder();
+        stackBuilder.append("<div><b><span style=" + BLUE_STYLE + ">stack:</span></b><br>");
+
+        for (NodeInfo.Location stackLocation : context.stack()) {
+            stackBuilder.append("&nbsp;&nbsp;- <span style=" + BLUE_STYLE + ">file:</span> ")
+                    .append(stackLocation.file())
+                    .append(" <span style=" + BLUE_STYLE + ">line:</span> ").append(stackLocation.line())
+                    .append(" <span style=" + BLUE_STYLE + ">column:</span> ").append(stackLocation.column())
+                    .append("<br>");
+        }
+        stackBuilder.append("</div>");
+        return stackBuilder.toString();
+    }
+
+    private void displayInEditorPane(String html) {
+        JEditorPane editorPane = new JEditorPane("text/html", html);
+        editorPane.setEditable(false);
+        this.removeAll();
+        this.add(new JScrollPane(editorPane));
+        this.revalidate();
     }
 }
