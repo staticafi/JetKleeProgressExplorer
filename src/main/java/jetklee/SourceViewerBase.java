@@ -8,7 +8,6 @@ import java.util.List;
  */
 public abstract class SourceViewerBase extends TextViewerBase {
     protected static final int textFontSize = 14;
-    private static final Color HIGHLIGHT_COLOR = Color.RED;
     protected int numLineColumnChars;
 
     public SourceViewerBase() {
@@ -49,7 +48,7 @@ public abstract class SourceViewerBase extends TextViewerBase {
     public void selectCodeLine(int line) {
         removeHighLight();
         setLine(line);
-        highlightLine(line, HIGHLIGHT_COLOR);
+        highlightLine(line);
     }
 
     public abstract List<String> getSourceCodeLines();

@@ -6,20 +6,24 @@ import javax.swing.text.DefaultHighlighter;
 import javax.swing.text.Highlighter;
 import java.awt.*;
 
+import static jetklee.Styles.GREEN_COLOR;
+
 /**
  * General panel with text.
  */
 public abstract class TextViewerBase extends JPanel {
     protected JTextArea textArea;
-    private JScrollPane scrollPane;
     public TextViewerBase() {
         super(new BorderLayout());
+
         textArea = new JTextArea();
-        scrollPane = new JScrollPane(textArea);
-        scrollPane.setWheelScrollingEnabled(true);
         textArea.setEditable(false);
         textArea.setText("");
-        add(scrollPane, BorderLayout.CENTER);
+
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setWheelScrollingEnabled(true);
+
+        this.add(scrollPane, BorderLayout.CENTER);
     }
 
     /**
@@ -38,16 +42,14 @@ public abstract class TextViewerBase extends JPanel {
         }
     }
 
-    protected void highlightLine(int line, Color color) {
+    protected void highlightLine(int line) {
         try {
             int startOffset = textArea.getLineStartOffset(line - 1);
             int endOffset = textArea.getLineEndOffset(line - 1);
 
             Highlighter highlighter = textArea.getHighlighter();
-            Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(color);
-
+            Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(GREEN_COLOR);
             highlighter.addHighlight(startOffset, endOffset, painter);
-//            highlighter.addHighlight(startOffset, endOffset, DefaultHighlighter.DefaultPainter);
         } catch (BadLocationException e) {
             // Nothing to do.
         }
