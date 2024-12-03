@@ -120,7 +120,7 @@ public class PlanePanel extends JPanel {
                     Object value = byteTable.getValueAt(row, column);
                     boolean isSymbolic = byteTable.getValueAt(row, 2) == "false";
                     if (value != null && value != "" && isSymbolic) {
-                        showPopup(value.toString(), "Value Details");
+                        showPopup(value.toString(), "Value");
                     }
                 }
             }
@@ -220,7 +220,7 @@ public class PlanePanel extends JPanel {
                 if (column == 0 || column == 1) {
                     Object value = updateTable.getValueAt(row, column);
                     if (value != null && value != "") {
-                        String title = (column == 0) ? "Offset Details" : "Value Details";
+                        String title = (column == 0) ? "Offset" : "Value";
                         showPopup(value.toString(), title);
                     }
                 }

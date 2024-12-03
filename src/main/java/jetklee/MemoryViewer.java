@@ -1,16 +1,11 @@
 package jetklee;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.StyledDocument;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -25,6 +20,10 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
     private NodeMemory.Memory currentMemory;
     private Node currentState;
     private boolean showAll = false;
+
+    private SourceViewerLL sourceLL;
+    private int showAllSelection = 0;
+    private int shortSelection = 0;
 
     private JList<String> objectsList;
     private JScrollPane objectScrollPane;
@@ -46,10 +45,14 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
                 showAll = !showAll;
                 if (showAll) {
                     showAllButton.setText("Hide");
+                    shortSelection = objectsList.getSelectedIndex();
                     displayCompleteMemory(currentState);
+//                    objectsList.setSelectedIndex(showAllSelection);
                 } else {
                     showAllButton.setText("Show All");
+                    showAllSelection = objectsList.getSelectedIndex();
                     displayShortMemory(currentState);
+//                    objectsList.setSelectedIndex(shortSelection);
                 }
             }
         });
@@ -161,18 +164,19 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         objects.addAll(memory.additions());
         objects.addAll(memory.changes());
 
+        ArrayList<NodeMemory.ObjectState> deletions = new ArrayList<>();
+        for (NodeMemory.Deletion deletion : memory.deletions()) {
+            deletions.add(getDeletedObjectState(deletion.objID()));
+        }
+
+        objects.addAll(deletions);
+
         ((CustomListCellRenderer) objectsList.getCellRenderer()).updateObjectList(objects, memory.deletions());
         ((DefaultListModel<String>) objectsList.getModel()).clear();
 
         int maxDigits = 0;
         for (NodeMemory.ObjectState object : objects) {
             int length = String.valueOf(object.objID()).length();
-            if (length > maxDigits) {
-                maxDigits = length;
-            }
-        }
-        for (NodeMemory.Deletion deletion : memory.deletions()) {
-            int length = String.valueOf(deletion.objID()).length();
             if (length > maxDigits) {
                 maxDigits = length;
             }
@@ -190,34 +194,15 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
             ((DefaultListModel<String>) objectsList.getModel()).addElement(objectName);
         }
 
-        for (NodeMemory.Deletion deletion : memory.deletions()) {
-            String deletionName = String.format("%-" + maxDigits + "d", deletion.objID());
-            ((DefaultListModel<String>) objectsList.getModel()).addElement(deletionName);
-        }
-
-        if (objects.isEmpty()) {
-            return;
-        }
-
 //        objectsList.setSelectedIndex(0);
+
+//        if (showAll) {
+//            objectsList.setSelectedIndex(showAllSelection);
+//        } else {
+//            objectsList.setSelectedIndex(shortSelection);
+//        }
 //        updatePlanes();
 //        displayObjectInfo();
-    }
-
-    private void appendKeyValue(StyledDocument doc, String key, String value) {
-        SimpleAttributeSet keyStyle = new SimpleAttributeSet();
-        StyleConstants.setForeground(keyStyle, Color.BLUE);
-        StyleConstants.setBold(keyStyle, true);
-
-        SimpleAttributeSet valueStyle = new SimpleAttributeSet();
-        StyleConstants.setForeground(valueStyle, Color.BLACK);
-
-        try {
-            doc.insertString(doc.getLength(), key + ": ", keyStyle);
-            doc.insertString(doc.getLength(), value + ", ", valueStyle);
-        } catch (BadLocationException e) {
-//            throw new RuntimeException(e);
-        }
     }
 
     private void displayObjectInfo() {
@@ -250,7 +235,7 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         StringBuilder htmlContent = new StringBuilder("<html><body style='font-family:Arial;padding:10px;'>");
 
         // Row 1: ID (Key and Value are bold)
-        htmlContent.append("<b style='color:blue;'>objId:</b>").append(currentObjectState.objID()).append("<br>");
+        htmlContent.append("<b style='color:blue;'>objId: </b>").append(currentObjectState.objID()).append("<br>");
 
         // Row 2: Segment, Name, Size, Copy-On-Write Owner, Symbolic Address
         appendKeyValueInlineNonBold(htmlContent, "segment", currentObjectState.segment());
@@ -273,7 +258,13 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         if (currentObjectState.allocSite() != null) {
             htmlContent.append("<b style='color:blue;'>allocSite:</b><br>");
             NodeMemory.AllocSite allocSite = currentObjectState.allocSite();
-            htmlContent.append(formatAllocSiteAsList(allocSite));
+            String name = allocSite.name();
+            String row = "";
+
+            if (name != null && !name.isEmpty()) {
+                row = String.valueOf(sourceLL.findDefinitionLine(name));
+            }
+            htmlContent.append(formatAllocSiteAsList(allocSite, row));
         }
         htmlContent.append("<br>");
 
@@ -309,9 +300,11 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         objectInfoPanel.repaint();
     }
 
-    private String formatAllocSiteAsList(NodeMemory.AllocSite allocSite) {
+    private String formatAllocSiteAsList(NodeMemory.AllocSite allocSite, String row) {
+
         return "&nbsp;&nbsp;- <span style='color:blue;'>scope:</span> " + allocSite.scope() + "<br>"
                 + "&nbsp;&nbsp;- <span style='color:blue;'>name:</span> " + allocSite.name() + "<br>"
+                + "&nbsp;&nbsp;- <span style='color:blue;'>row:</span> " + row + "<br>"
                 + "&nbsp;&nbsp;- <span style='color:blue;'>code:</span> " + allocSite.code() + "<br>";
     }
 
@@ -441,11 +434,13 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         displayObjectInfo();
     }
 
-    public void displayMemory(Node node) {
+    public void displayMemory(Node node, SourceViewerLL sourceLL) {
+        this.sourceLL = sourceLL;
         showAllButton.setText("Show All");
         showAll = false;
         currentState = node;
         currentMemory = node.getMemory().getMemory();
+//        objectsList.setSelectedIndex(0);
 
         if (currentMemory == null) {
             currentMemory = new NodeMemory.Memory(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
@@ -467,18 +462,11 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
 
         int selected = Integer.parseInt(objectsList.getSelectedValue().split(" ")[0]);
 
-        boolean isDeletion = currentMemory.deletions().stream()
-                .anyMatch(deletion -> deletion.objID() == selected);
-
         NodeMemory.ObjectState currentObjectState;
-        if (isDeletion) {
-            currentObjectState = getDeletedObjectState(selected);
-        } else {
             currentObjectState = objects.stream()
                     .filter(obj -> obj.objID() == selected)
                     .findFirst()
                     .orElse(null);
-        }
 
         if (currentObjectState != null) {
             NodeMemory.Plane offsetPlane = currentObjectState.offsetPlane();

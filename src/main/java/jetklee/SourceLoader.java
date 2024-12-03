@@ -20,10 +20,13 @@ public class SourceLoader {
 
     private List<String> loadFile(File sourceFile) throws IOException {
         List<String> source = new ArrayList<>();
-        if (sourceFile.isFile())
+        if (sourceFile.isFile()) {
             source = Files.lines(Paths.get(sourceFile.getPath())).toList();
+        }
         else
+        {
             source.add("Cannot access source code file: " + sourceFile.getAbsolutePath());
+        }
         return source;
     }
 

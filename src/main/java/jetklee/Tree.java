@@ -55,6 +55,8 @@ public class Tree {
     }
 
     private void loadTree(Path dir) throws Exception {
+        roundCounter = 0;
+        rounds = new ArrayList<>();
         Files.list(dir)
                 .filter(Files::isRegularFile)
                 .filter(path -> path.getFileName().toString().endsWith(".json"))

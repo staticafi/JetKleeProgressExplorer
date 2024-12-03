@@ -7,6 +7,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.io.File;
+import java.util.prefs.Preferences;
 
 import com.formdev.flatlaf.FlatLightLaf;
 
@@ -34,6 +36,8 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
     private ContextViewer contextViewer;
     private JPopupMenu rightClickMenu;
     private float divider;
+
+    private JMenuBar menuBar;
 
     public ProgressExplorer() {
         tree = new Tree();
@@ -95,6 +99,19 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
             newItem.setActionCommand(nodeAction.value);
             rightClickMenu.add(newItem);
         }
+
+        menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+        JMenuItem openMenuItem = new JMenuItem("Open");
+
+        openMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                openFile();
+            }
+        });
+        fileMenu.add(openMenuItem);
+        menuBar.add(fileMenu);
     }
 
     public static void main(String[] args) {
@@ -123,6 +140,8 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
                     throw new IllegalArgumentException("Invalid number of arguments. Expected " + ARGS_COUNT + " arguments.");
                 explorer.load(Paths.get(args[0]).toAbsolutePath().toString());
 
+                frame.setJMenuBar(explorer.menuBar);
+
                 frame.setContentPane(explorer.rootPanel);
                 frame.pack();
                 frame.setVisible(true);
@@ -131,10 +150,27 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
                 double totalTime = (System.currentTimeMillis() - startTime) / 1000.0f;
                 String formattedTime = String.format("%.2f", totalTime);
                 System.out.println(formattedTime);
-//                System.exit(0);
             }
         });
     }
+    private void openFile() {
+        Preferences prefs = Preferences.userNodeForPackage(ProgressExplorer.class);
+        String lastDirectory = prefs.get("lastDirectory", System.getProperty("user.home"));
+
+        JFileChooser fileChooser = new JFileChooser(lastDirectory);
+        fileChooser.setDialogTitle("Open Directory");
+        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+        int result = fileChooser.showOpenDialog(rootPanel);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedDir = fileChooser.getSelectedFile();
+
+            File newDir = new File(selectedDir, "__JetKleeProgressRecording__");
+            load(newDir.getAbsolutePath());
+            prefs.put("lastDirectory", selectedDir.getAbsolutePath());
+        }
+    }
+
 
     private enum TabbedPane {
         TREE_PANE, C_PANE, LL_PANE;
@@ -189,10 +225,15 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         sourceC.setSourceCodeLines();
         sourceLL.setSourceCodeLines();
 
+        DefaultListModel<String> model = (DefaultListModel<String>) roundsList.getModel();
+        model.clear();
+
         for (int i = 0; i < tree.rounds.size(); ++i)
             ((DefaultListModel<String>) roundsList.getModel()).addElement(tree.rounds.get(i));
-        roundsList.setSelectedIndex(tree.roundCounter - 1);
-        roundsList.ensureIndexIsVisible(tree.roundCounter - 1);
+        roundsList.setSelectedIndex(0);
+        roundsList.ensureIndexIsVisible(0);
+        roundsList.revalidate();
+        roundsList.repaint();
     }
 
     /**
@@ -216,7 +257,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
     private void displayNodeInfoPane(Node node) {
         contextViewer.displayContext(node.getInfo());
         constraintsViewer.displayConstraints(node.getInfo().getConstraints());
-        memoryViewer.displayMemory(node);
+        memoryViewer.displayMemory(node, sourceLL);
 
         nodeInfoTabbedPane.setVisible(true);
         splitPane.setDividerLocation(0.5);
@@ -249,7 +290,6 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         if (SwingUtilities.isRightMouseButton(e)) {
             if (nodeInfoTabbedPane.isVisible()) {
                 nodeInfoTabbedPane.setVisible(false);
-//                divider = splitPane.getDividerLocation();
             }
             sourceC.removeHighLight();
             sourceLL.removeHighLight();
