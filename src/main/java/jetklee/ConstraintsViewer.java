@@ -3,23 +3,21 @@ package jetklee;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 
 public class ConstraintsViewer extends JPanel {
-
+    private boolean showOriginal;
     private ArrayList<String> constraints;
     private JButton toggleButton;
     private JEditorPane editorPane;
-    private boolean showRaw = false;
-    private Set<String> labels;
+    private static final String ORIGINAL_STRING = "Show Original";
+    private static final String FORMATTED_STRING = "Show Formatted";
 
     public ConstraintsViewer() {
         super();
-        this.constraints = new ArrayList<>();
-        this.labels = new HashSet<>();
-
         this.setLayout(new BorderLayout());
+
+        constraints = new ArrayList<>();
+        showOriginal = false;
 
         editorPane = new JEditorPane();
         editorPane.setContentType("text/html");
@@ -28,31 +26,30 @@ public class ConstraintsViewer extends JPanel {
         JScrollPane scrollPane = new JScrollPane(editorPane);
         this.add(scrollPane, BorderLayout.CENTER);
 
-        toggleButton = new JButton("Switch to Raw View");
+        toggleButton = new JButton(ORIGINAL_STRING);
         toggleButton.addActionListener(e -> toggleView());
         this.add(toggleButton, BorderLayout.NORTH);
     }
 
     public void displayConstraints(ArrayList<String> constraints) {
         this.constraints = constraints;
-        StringBuilder content = new StringBuilder();
-        labels.clear();
+        StringBuilder constraintsStr = new StringBuilder();
 
         for (String constraint : constraints) {
-            if (showRaw) {
-                content.append(constraint).append("<br><br>");
+            if (showOriginal) {
+                constraintsStr.append(constraint).append("<br><br>");
             } else {
-                content.append(KQueryFormatter.formatConstraint(constraint)).append("<br>");
+                constraintsStr.append(KQueryFormatter.formatConstraint(constraint)).append("<br>");
             }
         }
 
-        editorPane.setText("<html><body>" + content + "</body></html>");
+        editorPane.setText("<html><body>" + constraintsStr + "</body></html>");
         editorPane.setCaretPosition(0);
     }
 
     private void toggleView() {
-        showRaw = !showRaw;
-        toggleButton.setText(showRaw ? "Switch to Formatted View" : "Switch to Raw View");
+        showOriginal = !showOriginal;
+        toggleButton.setText(showOriginal ? FORMATTED_STRING : ORIGINAL_STRING);
         displayConstraints(constraints);
     }
 }

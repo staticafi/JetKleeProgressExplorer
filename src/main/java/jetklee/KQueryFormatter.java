@@ -1,14 +1,15 @@
 package jetklee;
 
 public class KQueryFormatter {
+    private static final int INDENT_SIZE = 6;
 
-    public static String formatConstraint(String input) {
-        StringBuilder formatted = new StringBuilder();
+    public static String formatConstraint(String constraint) {
         int indentLevel = 0;
         boolean inFunction = false;
+        StringBuilder formatted = new StringBuilder();
 
-        for (int i = 0; i < input.length(); i++) {
-            char c = input.charAt(i);
+        for (int i = 0; i < constraint.length(); i++) {
+            char c = constraint.charAt(i);
 
             switch (c) {
                 case ('('):
@@ -23,13 +24,13 @@ public class KQueryFormatter {
                     indentLevel++;
                     break;
                 case ('['):
-                    indentLevel++;
                     if (i != 0) {
                         formatted.append("<br>");
                     }
                     formatted
                             .append(indent(indentLevel))
                             .append(c);
+                    indentLevel++;
                     break;
 
                 case ')':
@@ -52,12 +53,15 @@ public class KQueryFormatter {
 
                 case ' ':
                     if (inFunction) {
-                        if (i + 1 < input.length() && input.charAt(i + 1) != '(') {
-                            formatted.append("<br>");
-                            formatted.append(indent(indentLevel));
-                        }
                         formatted.append("</b> ");
                         inFunction = false;
+
+                        // put the parameters of the function on a new line
+                        if (i + 1 < constraint.length() && constraint.charAt(i + 1) != '(') {
+                            formatted
+                                    .append("<br>")
+                                    .append(indent(indentLevel));
+                        }
                     }
                     formatted.append(c);
                     break;
@@ -72,6 +76,6 @@ public class KQueryFormatter {
     }
 
     private static String indent(int level) {
-        return "&nbsp;".repeat(level * 4);
+        return "&nbsp;".repeat(level * INDENT_SIZE);
     }
 }
