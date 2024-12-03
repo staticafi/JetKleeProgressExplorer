@@ -273,7 +273,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
     private void displayNodePane(Node node) {
         contextViewer.displayContext(node.getInfo());
         constraintsViewer.displayConstraints(node.getInfo().getConstraints());
-        memoryViewer.displayMemory(node, sourceLL);
+        memoryViewer.setupAndDisplayMemory(node, sourceLL);
 
         nodeTabbedPane.setVisible(true);
         splitPane.setDividerLocation(0.5);

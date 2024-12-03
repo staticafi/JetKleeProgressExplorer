@@ -3,7 +3,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import static jetklee.MemoryViewer.mergeDiff;
+import static jetklee.CompleteMemoryRetriever.mergeDiff;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestMergeDiff {

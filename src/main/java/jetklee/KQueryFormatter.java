@@ -53,7 +53,7 @@ public class KQueryFormatter {
 
                 case ' ':
                     if (inFunction) {
-                        formatted.append("</b> ");
+                        formatted.append("</b>");
                         inFunction = false;
 
                         // put the parameters of the function on a new line
