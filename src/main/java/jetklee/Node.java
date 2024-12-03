@@ -11,16 +11,16 @@ public class Node {
         int subTreeMinX = 0;
         int subTreeMaxX = 0;
     }
-
-    private ViewProps viewProps;
+    private final int id;
     private int startRound;
     private int endRound;
     private Node parent;
     private Node left;
     private Node right;
-    private int id;
     private NodeInfo info;
     private NodeMemory memory;
+    private ViewProps viewProps;
+
     /**
      * @param id_ unique node id
      */
@@ -32,10 +32,6 @@ public class Node {
         left = null;
         right = null;
         viewProps = new ViewProps();
-    }
-
-    public boolean isRoot() {
-        return parent == null;
     }
 
     public ViewProps getViewProps() {
@@ -70,10 +66,6 @@ public class Node {
         return info;
     }
 
-    public void setViewProps(ViewProps viewProps) {
-        this.viewProps = viewProps;
-    }
-
     public void setStartRound(int startRound) {
         this.startRound = startRound;
     }
@@ -94,9 +86,6 @@ public class Node {
         this.right = right;
     }
 
-    public void setId(int id) {
-        this.id = id;
-    }
     public void setInfo(NodeInfo info) {
         this.info = info;
     }
