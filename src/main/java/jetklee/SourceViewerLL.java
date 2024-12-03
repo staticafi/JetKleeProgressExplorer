@@ -8,9 +8,9 @@ import java.util.List;
 public class SourceViewerLL extends SourceViewerBase {
     private SourceLoader sourceLoader;
 
-    public SourceViewerLL(SourceLoader sourceLoader_) {
+    public SourceViewerLL(SourceLoader sourceLoader) {
         super();
-        sourceLoader = sourceLoader_;
+        this.sourceLoader = sourceLoader;
     }
 
     @Override
@@ -21,6 +21,7 @@ public class SourceViewerLL extends SourceViewerBase {
     public void setSourceCodeLines() {
         super.setSourceCodeLines();
     }
+
     /**
      * Finds the line number of a function or global variable in the .ll file with an exact name match.
      *
@@ -32,8 +33,8 @@ public class SourceViewerLL extends SourceViewerBase {
             String line = sourceLoader.sourceLL.get(i).trim();
 
             if (line.startsWith("@") && line.contains(name)) {
-                String[] parts = line.split("\\s+");
-                if (parts[0].equals("@" + name)) {
+                String[] parts = line.split(" ");
+                if (parts.length > 0 && parts[0].equals("@" + name)) {
                     return i + 1;
                 }
             }
@@ -47,14 +48,14 @@ public class SourceViewerLL extends SourceViewerBase {
         }
         return -1;
     }
+
     private String extractFunctionName(String line) {
         int startIdx = line.indexOf("@");
         int endIdx = line.indexOf("(");
+
         if (startIdx != -1 && endIdx != -1) {
-            return line.substring(startIdx, endIdx).trim();
+            return line.substring(startIdx, endIdx);
         }
         return "";
     }
-
-
 }
