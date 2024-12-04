@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import static jetklee.CompleteMemoryRetriever.getCompleteMemory;
+import static jetklee.ObjectInfoViewer.displayObjectInfo;
 
 /**
  * Panel that displays memory of selected execution state
@@ -52,8 +53,6 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
 
         JSplitPane mainSplitPane = createMainSplitPane(objectsPanel);
         this.add(mainSplitPane, BorderLayout.CENTER);
-
-        objectInfoViewer = new ObjectInfoViewer(sourceLL, objectInfoPanel);
     }
 
     private JTextField createEntryField() {
@@ -177,7 +176,7 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
 
     private void displayMemory(NodeMemory.Memory memory) {
         displayTables(memory);
-        objectInfoViewer.displayObjectInfo(objectsList, memory, objects);
+        displayObjectInfo(objectsList, memory, objects, sourceLL, objectInfoPanel);
     }
 
     private void displayTables(NodeMemory.Memory memory) {
@@ -229,9 +228,6 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
 //        displayObjectInfo();
     }
 
-
-
-
     private void updatePlanes() {
         if (objectsList.getModel().getSize() == 0) {
             segmentPanel.updateTables(null, showAll);
@@ -269,7 +265,7 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         offsetPanel.updateTables(null, showAll);
 
         updatePlanes();
-        objectInfoViewer.displayObjectInfo(objectsList, currentNode.getMemory().getMemory(), objects);
+        displayObjectInfo(objectsList, currentNode.getMemory().getMemory(), objects, sourceLL, objectInfoPanel);
     }
 
     private NodeMemory.ObjectState getDeletedObjectState(int objID) {

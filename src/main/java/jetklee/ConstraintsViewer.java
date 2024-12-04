@@ -18,7 +18,6 @@ public class ConstraintsViewer extends TextViewerBase {
 
     public ConstraintsViewer() {
         super();
-        this.setLayout(new BorderLayout());
 
         constraints = new ArrayList<>();
         showOriginal = false;

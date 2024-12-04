@@ -5,6 +5,7 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.*;
+import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.io.File;
@@ -159,6 +160,11 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
 
                 frame.setJMenuBar(explorer.menuBar);
                 frame.setContentPane(explorer.rootPanel);
+                try {
+                    URL url = getClass().getResource("/icon.png");
+                    frame.setIconImage(Toolkit.getDefaultToolkit().getImage(url));
+                } catch (Exception e) {}
+
                 frame.pack();
                 frame.setVisible(true);
                 frame.setExtendedState(JFrame.MAXIMIZED_BOTH);

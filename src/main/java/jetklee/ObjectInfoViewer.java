@@ -4,15 +4,14 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 
-public class ObjectInfoViewer {
-    private final SourceViewerLL sourceLL;
-    private final JPanel objectInfoPanel;
+import static jetklee.HtmlFormatter.appendKeyValueInlineNonBold;
+import static jetklee.Styles.KEY_COLOR;
 
-    public ObjectInfoViewer(SourceViewerLL sourceLL, JPanel objectInfoPanel) {
-        this.sourceLL = sourceLL;
-        this.objectInfoPanel = objectInfoPanel;
-    }
-    public void displayObjectInfo(JList<String> objectsList, NodeMemory.Memory memory, ArrayList<NodeMemory.ObjectState> objects) {
+public class ObjectInfoViewer {
+
+    public static void displayObjectInfo(JList<String> objectsList, NodeMemory.Memory memory,
+                                         ArrayList<NodeMemory.ObjectState> objects, SourceViewerLL sourceLL,
+                                         JPanel objectInfoPanel) {
         objectInfoPanel.removeAll();
 
         if (objectsList.getSelectedIndex() < 0) {
@@ -107,7 +106,7 @@ public class ObjectInfoViewer {
         objectInfoPanel.repaint();
     }
 
-    private String formatAllocSiteAsList(NodeMemory.AllocSite allocSite, String row) {
+    private static String formatAllocSiteAsList(NodeMemory.AllocSite allocSite, String row) {
 
         return "&nbsp;&nbsp;- <span style='color:blue;'>scope:</span> " + allocSite.scope() + "<br>"
                 + "&nbsp;&nbsp;- <span style='color:blue;'>name:</span> " + allocSite.name() + "<br>"
@@ -115,12 +114,7 @@ public class ObjectInfoViewer {
                 + "&nbsp;&nbsp;- <span style='color:blue;'>code:</span> " + allocSite.code() + "<br>";
     }
 
-
-    private void appendKeyValueInlineNonBold(StringBuilder html, String key, Object value) {
-        html.append("<span style='color:blue;'>").append(key).append(":</span> <span style='color:black;'>").append(value).append("</span>&nbsp;&nbsp;&nbsp;");
-    }
-
-    private void appendPlaneDetailsHTML(StringBuilder html, NodeMemory.Plane plane) {
+    private static void appendPlaneDetailsHTML(StringBuilder html, NodeMemory.Plane plane) {
         appendKeyValueInlineNonBold(html, "rootObject", plane.rootObject());
         appendKeyValueInlineNonBold(html, "initialValue", plane.initialValue());
         appendKeyValueInlineNonBold(html, "sizeBound", plane.sizeBound());

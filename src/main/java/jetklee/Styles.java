@@ -7,7 +7,7 @@ import java.awt.*;
  */
 public class Styles {
     // html styles
-    public static final String KEY_COLOR = "'color:blue;'";
+    public static final String KEY_COLOR = "blue";
 
     // colors
     public static final Color DELETIONS_COLOR = new Color(255, 0, 0, 125);
