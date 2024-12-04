@@ -306,6 +306,13 @@ public class TreeViewer extends JPanel {
         }
     }
 
+    public boolean isSelectedVisible() {
+        if (selectedNode == null) {
+            return false;
+        }
+        return isVisibleNode(selectedNode, selectedRound);
+    }
+
     private static Font makeFont(float zoom) {
         return font = new Font(CODE_FONT, Font.PLAIN, Math.round((0.75f * NODE_HEIGHT) * zoom));
     }

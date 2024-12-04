@@ -4,12 +4,12 @@ import java.awt.*;
 import java.util.List;
 
 import static jetklee.Styles.CODE_FONT;
+import static jetklee.Styles.CODE_FONT_SIZE;
 
 /**
  * Displays source code.
  */
 public abstract class SourceViewerBase extends TextViewerBase {
-    protected static final int CODE_FONT_SIZE = 14;
     protected int numLineColumnChars;
 
     public SourceViewerBase() {

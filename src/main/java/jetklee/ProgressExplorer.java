@@ -139,7 +139,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
             public void run() {
                 double startTime = System.currentTimeMillis();
 
-                FlatLightLaf.setGlobalExtraDefaults(Collections.singletonMap("@accentColor", "#ADD8E6"));
+                FlatLightLaf.setGlobalExtraDefaults(Collections.singletonMap("@accentColor", "#62c1e5"));
                 try {
                     UIManager.setLookAndFeel(new FlatLightLaf());
                 } catch (Exception ex) {
@@ -227,6 +227,9 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         }
         treeViewer.setSelectedRound(roundsList.getSelectedIndex());
         treeViewer.updateArea();
+
+        System.out.println(treeViewer.isSelectedVisible());
+        nodeTabbedPane.setVisible(treeViewer.isSelectedVisible());
     }
 
     /**
@@ -242,6 +245,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
             JOptionPane.showMessageDialog(rootPanel, "Load has FAILED: " + e);
             return;
         }
+        nodeTabbedPane.setVisible(false);
         treeViewer.load();
         sourceC.setSourceCodeLines();
         sourceLL.setSourceCodeLines();
@@ -313,7 +317,6 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         if (node == null && SwingUtilities.isLeftMouseButton(e)) {
             if (nodeTabbedPane.isVisible()) {
                 nodeTabbedPane.setVisible(false);
-                treeViewer.repaint();
                 treeViewer.setSelectedNode(null);
             }
             sourceC.removeHighLight();

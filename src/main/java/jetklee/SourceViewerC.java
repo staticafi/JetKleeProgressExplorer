@@ -8,6 +8,7 @@ import java.awt.event.MouseEvent;
 import java.util.List;
 
 import static jetklee.Styles.CODE_FONT;
+import static jetklee.Styles.CODE_FONT_SIZE;
 
 /**
  * Displays C source code.

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 
 import static jetklee.CompleteMemoryRetriever.getDeletedObjectState;
 import static jetklee.HtmlFormatter.appendKeyValueInlineNonBold;
+import static jetklee.Styles.INFO_FONT_SIZE;
 import static jetklee.Styles.KEY_COLOR;
 
 public class ObjectInfoViewer {
@@ -39,7 +40,8 @@ public class ObjectInfoViewer {
             return;
         }
 
-        StringBuilder htmlContent = new StringBuilder("<html><body style='font-family:Arial;padding:10px;'>");
+        StringBuilder htmlContent = new StringBuilder("<html><body style='font-family:sans-serif; fonst-size:"
+                + INFO_FONT_SIZE + "; padding:5px;'>");
 
         // Row 1: ID (Key and Value are bold)
         htmlContent.append("<b style='color:blue;'>objId: </b>").append(currentObjectState.objID()).append("<br>");
@@ -63,15 +65,15 @@ public class ObjectInfoViewer {
         htmlContent.append("<br>");
 
         if (currentObjectState.allocSite() != null) {
-            htmlContent.append("<b style='color:blue;'>allocSite:</b><br>");
+            htmlContent.append("<b style='color:blue;'>allocSite</b><br>");
             NodeMemory.AllocSite allocSite = currentObjectState.allocSite();
             String name = allocSite.name();
-            String row = "";
+            String functionLine = "";
 
             if (name != null && !name.isEmpty()) {
-                row = String.valueOf(sourceLL.findDefinitionLine(name));
+                functionLine = String.valueOf(sourceLL.findDefinitionLine(name));
             }
-            htmlContent.append(formatAllocSiteAsList(allocSite, row));
+            htmlContent.append(formatAllocSiteAsList(allocSite, functionLine));
         }
         htmlContent.append("<br>");
 
@@ -107,12 +109,12 @@ public class ObjectInfoViewer {
         objectInfoPanel.repaint();
     }
 
-    private static String formatAllocSiteAsList(NodeMemory.AllocSite allocSite, String row) {
-
-        return "&nbsp;&nbsp;- <span style='color:blue;'>scope:</span> " + allocSite.scope() + "<br>"
-                + "&nbsp;&nbsp;- <span style='color:blue;'>name:</span> " + allocSite.name() + "<br>"
-                + "&nbsp;&nbsp;- <span style='color:blue;'>row:</span> " + row + "<br>"
-                + "&nbsp;&nbsp;- <span style='color:blue;'>code:</span> " + allocSite.code() + "<br>";
+    private static String formatAllocSiteAsList(NodeMemory.AllocSite allocSite, String functionLine) {
+        return "<div><span style='color:blue;'>code:</span> " + allocSite.code() + "<br>" +
+                "<span style='color:blue;'>scope:</span> " + allocSite.scope() + "<br>" +
+                "&nbsp;&nbsp;&nbsp;&nbsp;- <span style='color:blue;'>name:</span> " + allocSite.name() + "<br>" +
+                "&nbsp;&nbsp;&nbsp;&nbsp;- <span style='color:blue;'>line:</span> " + functionLine + "<br>" +
+                "</div>";
     }
 
     private static void appendPlaneDetailsHTML(StringBuilder html, NodeMemory.Plane plane) {

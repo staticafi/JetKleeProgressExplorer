@@ -6,7 +6,7 @@ import javax.swing.text.DefaultHighlighter;
 import javax.swing.text.Highlighter;
 import java.awt.*;
 
-import static jetklee.Styles.CODE_HIGH_LIGHT_COLOR;
+import static jetklee.Styles.ADDITIONS_COLOR;
 
 /**
  * General panel with text.
@@ -48,7 +48,7 @@ public abstract class TextViewerBase extends JPanel {
             int endOffset = textArea.getLineEndOffset(line - 1);
 
             Highlighter highlighter = textArea.getHighlighter();
-            Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(CODE_HIGH_LIGHT_COLOR);
+            Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(ADDITIONS_COLOR);
             highlighter.addHighlight(startOffset, endOffset, painter);
         } catch (BadLocationException e) {
             // Nothing to do.

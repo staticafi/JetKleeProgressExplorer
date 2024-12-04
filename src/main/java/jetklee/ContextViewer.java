@@ -3,8 +3,7 @@ package jetklee;
 import javax.swing.*;
 
 import static jetklee.HtmlFormatter.appendKeyValueInlineNonBold;
-import static jetklee.Styles.KEY_COLOR;
-import static jetklee.Styles.INFO_FONT;
+import static jetklee.Styles.*;
 
 /**
  * Panel that displays context of selected execution state.
@@ -22,8 +21,7 @@ public class ContextViewer extends TextViewerBase {
      */
     public void displayContext(NodeInfo info) {
         NodeInfo.Context context = info.getContext();
-
-        String html = "<html><body style='font-family:" + INFO_FONT + ";'>" +
+        String html = "<html><body style='font-family:" + INFO_FONT + "; font-size:" + INFO_FONT_SIZE + ";padding:5px;'>" +
                 createNodeInfoRow(context) +
                 createStateInfoRow(context) +
                 createLocationRow("location", context.location()) +

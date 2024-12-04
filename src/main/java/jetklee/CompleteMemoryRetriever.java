@@ -94,10 +94,10 @@ public class CompleteMemoryRetriever {
     private static NodeMemory.Updates mergeUpdates(NodeMemory.Updates a, NodeMemory.Updates b) {
         NodeMemory.Updates mergedUpdates = new NodeMemory.Updates();
         if (a != null) {
-            mergedUpdates.putAll(a);
+            mergedUpdates.addAll(a);
         }
         if (b != null) {
-            mergedUpdates.putAll(b);
+            mergedUpdates.addAll(b);
         }
 
         return mergedUpdates;

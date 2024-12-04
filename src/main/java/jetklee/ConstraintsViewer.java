@@ -4,6 +4,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 
+import static jetklee.Styles.INFO_FONT;
+import static jetklee.Styles.INFO_FONT_SIZE;
+
 /**
  * Panel that displays constraints of selected execution state.
  * Allows to switch between original and formatted view.
@@ -51,7 +54,7 @@ public class ConstraintsViewer extends TextViewerBase {
             }
         }
 
-        editorPane.setText("<html><body>" + constraintsStr + "</body></html>");
+        editorPane.setText("<html><body style='font-family:" + INFO_FONT + "; font-size:" + INFO_FONT_SIZE + ";padding:5px;'>" + constraintsStr + "</body></html>");
         editorPane.setCaretPosition(0);
     }
 

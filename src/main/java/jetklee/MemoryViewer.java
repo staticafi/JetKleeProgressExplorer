@@ -66,12 +66,13 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         JTabbedPane planesTabbedPane = createSegmentOffsetPane();
 
         JSplitPane objectStateSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, planesTabbedPane, objectInfoPanel);
-        objectStateSplitPane.setDividerLocation(0.9);
-        objectStateSplitPane.setResizeWeight(0.9);
+        objectStateSplitPane.setDividerLocation(0.6);
+        objectStateSplitPane.setResizeWeight(0.6);
 
         JSplitPane mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, objectsPanel, objectStateSplitPane);
-        mainSplitPane.setDividerLocation(0.2);
-        mainSplitPane.setResizeWeight(0.0);
+        mainSplitPane.setDividerLocation(0.6);
+        mainSplitPane.setResizeWeight(0.1);
+
         return mainSplitPane;
     }
 
@@ -183,8 +184,8 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
     }
 
     private void displayTables(NodeMemory.Memory memory) {
-        segmentPanel.updateTables(null, showAll);
-        offsetPanel.updateTables(null, showAll);
+        segmentPanel.updateTables(null, false);
+        offsetPanel.updateTables(null, false);
 
         objects = new ArrayList<>(memory.additions());
         objects.addAll(memory.changes());
@@ -192,7 +193,6 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         for (NodeMemory.Deletion deletion : memory.deletions()) {
             objects.add(getDeletedObjectState(currentNode, deletion.objID()));
         }
-
 
 //        int maxDigits = 0;
 //        for (NodeMemory.ObjectState object : objects) {
@@ -228,8 +228,8 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
 
     private void updatePlanes() {
         if (objectsList.getModel().getSize() == 0) {
-            segmentPanel.updateTables(null, showAll);
-            offsetPanel.updateTables(null, showAll);
+            segmentPanel.updateTables(null, false);
+            offsetPanel.updateTables(null, false);
             return;
         }
 
@@ -244,11 +244,15 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         if (currentObjectState != null) {
             NodeMemory.Plane offsetPlane = currentObjectState.offsetPlane();
             NodeMemory.Plane segmentPlane = currentObjectState.segmentPlane();
-            segmentPanel.updateTables(segmentPlane, showAll); // TODO currentObjectState type
-            offsetPanel.updateTables(offsetPlane, showAll);
+
+            boolean isDeletion = currentMemory.deletions().stream()
+                    .anyMatch(deletion -> deletion.objID() == selected);
+
+            segmentPanel.updateTables(segmentPlane, !(showAll || isDeletion));
+            offsetPanel.updateTables(offsetPlane, !(showAll || isDeletion));
         } else {
-            segmentPanel.updateTables(null, showAll);
-            offsetPanel.updateTables(null, showAll);
+            segmentPanel.updateTables(null, false);
+            offsetPanel.updateTables(null, false);
         }
     }
 

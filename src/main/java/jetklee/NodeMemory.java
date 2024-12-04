@@ -5,6 +5,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Parses and holds information about execution state of the process tree
@@ -49,12 +50,11 @@ public class NodeMemory {
                          ArrayList<Deletion> deletions) {
     }
 
-    public static class Updates extends HashMap<String, String> {
-    }
-
     public record Deletion(int objID, OperationType type) {
     }
 
+    public static class Updates extends ArrayList<Map.Entry<String, String>> {
+    }
 
     private Memory memory;
 
@@ -198,7 +198,7 @@ public class NodeMemory {
                 JSONObject updateJSON = updatesJSON.getJSONObject(i);
                 String key = updateJSON.keys().next();
                 String value = updateJSON.getString(key);
-                updates.put(value, key);
+                updates.add(Map.entry(key, value));
             }
         }
 

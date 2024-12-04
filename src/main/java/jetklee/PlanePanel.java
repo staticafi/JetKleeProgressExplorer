@@ -22,8 +22,7 @@ public class PlanePanel extends JPanel {
     private JPanel symbolicPanel;
     private JPanel updatePanel;
     private final String[] CONCRETE_COLUMNS = {"index", "value", "isConcrete"};
-    private final String[] SYMBOLIC_COLUMNS = {"index", "value", "isSymbolic"};
-    private final String[] UPDATE_COLUMNS = {"index", "value"};
+    private final String[] SYMBOLIC_COLUMNS = {"index", "value"};
 
     public PlanePanel() {
         super(new BorderLayout());
@@ -99,16 +98,15 @@ public class PlanePanel extends JPanel {
         }
 
         ArrayList<TableRow> byteRows = new ArrayList<>();
-        byteRows.addAll(getByteRows(additions, isColorFul ? BACKGROUND_COLOR : ADDITIONS_COLOR, maskAdditions,
+        byteRows.addAll(getByteRows(additions, isColorFul ? ADDITIONS_COLOR : BACKGROUND_COLOR, maskAdditions,
                 isConcrete));
-        byteRows.addAll(getByteRows(deletions, isColorFul ? BACKGROUND_COLOR : DELETIONS_COLOR, maskDeletions,
+        byteRows.addAll(getByteRows(deletions, isColorFul ? DELETIONS_COLOR : BACKGROUND_COLOR, maskDeletions,
                 isConcrete));
 
         if (sortByOffsetCheckBox.isSelected()) {
             sortByOffset(byteRows);
         }
-
-        JTable byteTable = createBytesTable(byteRows, byteColumns, isConcrete);
+        JTable byteTable = isConcrete ? createConcreteTable(byteRows, byteColumns) : createSymbolicTable(byteRows, byteColumns);
 
         bytePanel.removeAll();
         bytePanel.add(new JScrollPane(byteTable));
@@ -116,7 +114,7 @@ public class PlanePanel extends JPanel {
         bytePanel.repaint();
     }
 
-    private JTable createBytesTable(ArrayList<TableRow> rows, String[] columns, boolean isConcrete) {
+    private JTable createConcreteTable(ArrayList<TableRow> rows, String[] columns) {
         Object[][] data = new Object[rows.size()][columns.length];
 
         for (int i = 0; i < rows.size(); ++i) {
@@ -125,10 +123,10 @@ public class PlanePanel extends JPanel {
             data[i][Column.VALUE.ordinal()] = row.getValue();
             data[i][Column.MASK.ordinal()] = row.getMask();
         }
-        return createTable(data, columns, isConcrete, rows);
+        return createTable(data, columns, rows);
     }
 
-    private JTable createTable(Object[][] data, String[] columns, boolean isConcrete, ArrayList<TableRow> rows) {
+    private JTable createTable(Object[][] data, String[] columns, ArrayList<TableRow> rows) {
         JTable table = new JTable(data, columns) {
             @Override
             public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
@@ -138,11 +136,11 @@ public class PlanePanel extends JPanel {
                 return component;
             }
         };
-        table.addMouseListener(createMouseAdapter(table, isConcrete));
+        table.addMouseListener(createMouseAdapter(table));
         return table;
     }
 
-    private JTable createUpdatesTable(ArrayList<TableRow> rows, String[] columns) {
+    private JTable createSymbolicTable(ArrayList<TableRow> rows, String[] columns) {
         Object[][] data = new Object[rows.size()][columns.length];
 
         for (int i = 0; i < rows.size(); ++i) {
@@ -151,22 +149,17 @@ public class PlanePanel extends JPanel {
             data[i][Column.VALUE.ordinal()] = row.getValue();
         }
 
-        return createTable(data, columns, false, rows);
+        return createTable(data, columns, rows);
     }
 
-    private MouseAdapter createMouseAdapter(JTable table, boolean isConcrete) {
+    private MouseAdapter createMouseAdapter(JTable table) {
         return new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
                 int row = table.rowAtPoint(e.getPoint());
                 int column = table.columnAtPoint(e.getPoint());
-
-                if (!isConcrete) {
-                    Object value = table.getValueAt(row, column);
-                    if (value != null && value != "") {
-                        showPopup(value.toString());
-                    }
-                }
+                Object value = table.getValueAt(row, column);
+                showPopup(value.toString());
             }
         };
     }
@@ -185,24 +178,24 @@ public class PlanePanel extends JPanel {
         return byteRows;
     }
 
-    private ArrayList<TableRow> getUpdateRows(NodeMemory.Updates updates) {
+    private ArrayList<TableRow> getUpdateRows(NodeMemory.Updates updates, Color color) {
         ArrayList<TableRow> updateRows = new ArrayList<>();
-        for (String key : updates.keySet()) {
-            updateRows.add(new TableRow(BACKGROUND_COLOR, key, updates.get(key), null, true));
+        for (Map.Entry<String, String> entry : updates) {
+            updateRows.add(new TableRow(color, entry.getKey(), entry.getValue(), null, true));
         }
         return updateRows;
     }
 
-    private void updateUpdatesTable() {
-        NodeMemory.Updates updates = currentPlane == null ? new NodeMemory.Updates() : currentPlane.updates();
+    private void updateUpdatesTable(boolean isColorful) {
+        NodeMemory.Updates updates = currentPlane == null ? new NodeMemory.Updates(): currentPlane.updates();
 
-        ArrayList<TableRow> updateRows = getUpdateRows(updates);
+        ArrayList<TableRow> updateRows = getUpdateRows(updates, isColorful ? ADDITIONS_COLOR : BACKGROUND_COLOR);
 
         if (sortByOffsetCheckBox.isSelected()) {
             sortByOffset(updateRows);
         }
 
-        JTable updateTable = createUpdatesTable(updateRows, UPDATE_COLUMNS);
+        JTable updateTable = createSymbolicTable(updateRows, SYMBOLIC_COLUMNS);
 
         updatePanel.removeAll();
         updatePanel.add(new JScrollPane(updateTable), BorderLayout.CENTER);
@@ -210,12 +203,12 @@ public class PlanePanel extends JPanel {
         updatePanel.repaint();
     }
 
-    public void updateTables(NodeMemory.Plane plane, boolean showAll) {
-        this.isColorful = showAll;
+    public void updateTables(NodeMemory.Plane plane, boolean isColorful) {
+        this.isColorful = isColorful;
         this.currentPlane = plane;
-        updateBytesTable(concretePanel, CONCRETE_COLUMNS, true, showAll);
-        updateBytesTable(symbolicPanel, SYMBOLIC_COLUMNS, false, showAll);
-        updateUpdatesTable();
+        updateBytesTable(concretePanel, CONCRETE_COLUMNS, true, isColorful);
+        updateBytesTable(symbolicPanel, SYMBOLIC_COLUMNS, false, isColorful);
+        updateUpdatesTable(isColorful);
     }
 
     private String findMask(int byteIndex, NodeMemory.ByteMap mask) {
@@ -244,5 +237,4 @@ public class PlanePanel extends JPanel {
         popup.setLocationRelativeTo(this);
         popup.setVisible(true);
     }
-
 }
