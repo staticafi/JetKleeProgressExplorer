@@ -63,7 +63,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
 
     private void createRightClickMenu() {
         rightClickMenu = new JPopupMenu();
-        NodeAction[] nodeActions = new NodeAction[]{NodeAction.NODE_INFO, NodeAction.NODE_TO_C, NodeAction.NODE_TO_LL};
+        NodeAction[] nodeActions = new NodeAction[]{NodeAction.NODE_TO_C, NodeAction.NODE_TO_LL};
         for (NodeAction nodeAction : nodeActions) {
             JMenuItem newItem = new JMenuItem(nodeAction.value);
             newItem.addActionListener(this);
@@ -208,7 +208,7 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
 
         private static NodeAction parse(String actionStr) throws Exception {
             return switch (actionStr) {
-                case "Node Information" -> NODE_INFO;
+//                case "Node Information" -> NODE_INFO;
                 case "C" -> NODE_TO_C;
                 case "LL" -> NODE_TO_LL;
                 default -> throw new Exception("Unknown right click menu action: " + actionStr);
@@ -309,7 +309,8 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        if (SwingUtilities.isRightMouseButton(e)) {
+        Node node = treeViewer.onMouseClicked(e.getX(), e.getY());
+        if (node == null && SwingUtilities.isLeftMouseButton(e)) {
             if (nodeTabbedPane.isVisible()) {
                 nodeTabbedPane.setVisible(false);
                 treeViewer.repaint();
@@ -323,12 +324,22 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
     @Override
     public void mouseReleased(MouseEvent e) {
         Node node = treeViewer.onMouseClicked(e.getX(), e.getY());
-        if (node != null && SwingUtilities.isRightMouseButton(e)) {
-            rightClickMenu.putClientProperty("node", node);
-            rightClickMenu.show(e.getComponent(), e.getX(), e.getY());
-            treeViewer.setSelectedNode(node);
-            treeViewer.repaint();
+        if (node != null) {
+            if (SwingUtilities.isRightMouseButton(e)) {
+                rightClickMenu.putClientProperty("node", node);
+                rightClickMenu.show(e.getComponent(), e.getX(), e.getY());
+
+                displayNodePane(node);
+                treeViewer.setSelectedNode(node);
+                treeViewer.repaint();
+            }
+            if (SwingUtilities.isLeftMouseButton(e)) {
+                displayNodePane(node);
+                treeViewer.setSelectedNode(node);
+                treeViewer.repaint();
+            }
         }
+
     }
 
     @Override

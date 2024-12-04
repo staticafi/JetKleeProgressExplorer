@@ -36,12 +36,13 @@ public class ContextViewer extends TextViewerBase {
 
     private String createNodeInfoRow(NodeInfo.Context context) {
         StringBuilder row = new StringBuilder();
-        row.append("<b style='color:" + KEY_COLOR + ";'>objId: </b>").append(context.nodeID()).append("<br>");
+        row.append("<b style='color:" + KEY_COLOR + ";'>nodeId: </b>").append(context.nodeID()).append("<br>");
 
         appendKeyValueInlineNonBold(row, "stateId", context.stateID());
         appendKeyValueInlineNonBold(row, "parentId", context.parentID());
         appendKeyValueInlineNonBold(row, "nextId", context.nextID());
         appendKeyValueInlineNonBold(row, "depth", context.depth());
+        row.append("<br>");
         return row.toString();
     }
 
@@ -52,6 +53,7 @@ public class ContextViewer extends TextViewerBase {
         appendKeyValueInlineNonBold(row, "forkDisabled", context.forkDisabled());
         appendKeyValueInlineNonBold(row, "instsSinceCovNew", context.instsSinceCovNew());
         appendKeyValueInlineNonBold(row, "steppedInstructions", context.steppedInstructions());
+        row.append("<br><br>");
         return row.toString();
     }
 

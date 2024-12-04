@@ -16,7 +16,7 @@ import static jetklee.Styles.*;
  */
 public class PlanePanel extends JPanel {
     private NodeMemory.Plane currentPlane;
-    private boolean showAll;
+    private boolean isColorful;
     private JCheckBox sortByOffsetCheckBox;
     private JPanel concretePanel;
     private JPanel symbolicPanel;
@@ -28,7 +28,7 @@ public class PlanePanel extends JPanel {
     public PlanePanel() {
         super(new BorderLayout());
 
-        showAll = false;
+        isColorful = false;
 
         sortByOffsetCheckBox = new JCheckBox("Sort by Offset");
         sortByOffsetCheckBox.setSelected(true);
@@ -36,7 +36,7 @@ public class PlanePanel extends JPanel {
             // TODO showall
             @Override
             public void actionPerformed(ActionEvent e) {
-                updateTables(currentPlane, showAll);
+                updateTables(currentPlane, isColorful);
             }
         });
 
@@ -56,19 +56,6 @@ public class PlanePanel extends JPanel {
 
         this.add(controlPanel, BorderLayout.NORTH);
         this.add(tabbedPane, BorderLayout.CENTER);
-    }
-
-    private void clearTable(JPanel panel) {
-        panel.removeAll();
-        JLabel emptyLabel = new JLabel("Empty");
-        emptyLabel.setForeground(Color.GRAY);
-        emptyLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        emptyLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-
-        panel.setLayout(new BorderLayout());
-        panel.add(emptyLabel);
-        panel.revalidate();
-        panel.repaint();
     }
 
     private enum Column {
@@ -92,7 +79,7 @@ public class PlanePanel extends JPanel {
     }
 
 
-    private void updateBytesTable(JPanel bytePanel, String[] byteColumns, boolean isConcrete, boolean showAll) {
+    private void updateBytesTable(JPanel bytePanel, String[] byteColumns, boolean isConcrete, boolean isColorFul) {
         NodeMemory.ByteMap additions = new NodeMemory.ByteMap();
         NodeMemory.ByteMap deletions = new NodeMemory.ByteMap();
         NodeMemory.ByteMap maskAdditions = new NodeMemory.ByteMap();
@@ -112,9 +99,9 @@ public class PlanePanel extends JPanel {
         }
 
         ArrayList<TableRow> byteRows = new ArrayList<>();
-        byteRows.addAll(getByteRows(additions, showAll ? BACKGROUND_COLOR : ADDITIONS_COLOR, maskAdditions,
+        byteRows.addAll(getByteRows(additions, isColorFul ? BACKGROUND_COLOR : ADDITIONS_COLOR, maskAdditions,
                 isConcrete));
-        byteRows.addAll(getByteRows(deletions, showAll ? BACKGROUND_COLOR : DELETIONS_COLOR, maskDeletions,
+        byteRows.addAll(getByteRows(deletions, isColorFul ? BACKGROUND_COLOR : DELETIONS_COLOR, maskDeletions,
                 isConcrete));
 
         if (sortByOffsetCheckBox.isSelected()) {
@@ -174,10 +161,9 @@ public class PlanePanel extends JPanel {
                 int row = table.rowAtPoint(e.getPoint());
                 int column = table.columnAtPoint(e.getPoint());
 
-                if (column == Column.VALUE.ordinal() && !isConcrete) {
+                if (!isConcrete) {
                     Object value = table.getValueAt(row, column);
-                    boolean isSymbolic = table.getValueAt(row, Column.MASK.ordinal()) == "true";
-                    if (value != null && value != "" && isSymbolic) {
+                    if (value != null && value != "") {
                         showPopup(value.toString());
                     }
                 }
@@ -225,7 +211,7 @@ public class PlanePanel extends JPanel {
     }
 
     public void updateTables(NodeMemory.Plane plane, boolean showAll) {
-        this.showAll = showAll;
+        this.isColorful = showAll;
         this.currentPlane = plane;
         updateBytesTable(concretePanel, CONCRETE_COLUMNS, true, showAll);
         updateBytesTable(symbolicPanel, SYMBOLIC_COLUMNS, false, showAll);

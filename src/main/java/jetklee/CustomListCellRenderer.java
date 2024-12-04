@@ -5,6 +5,8 @@ import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.util.List;
 
+import static jetklee.Styles.*;
+
 public class CustomListCellRenderer extends DefaultListCellRenderer {
     private final List<NodeMemory.ObjectState> objects;
     private final List<NodeMemory.Deletion> deletions;
@@ -35,13 +37,13 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
             switch (objectState.type()) {
                 case ADDITION:
                     if (showAll) {
-                        label.setBackground(Color.WHITE);
+                        label.setBackground(BACKGROUND_COLOR);
                     } else {
-                        label.setBackground(GREEN_COLOR);
+                        label.setBackground(ADDITIONS_COLOR);
                     }
                     break;
                 case CHANGE:
-                    label.setBackground(Color.ORANGE);
+                    label.setBackground(CHANGE_COLOR);
                     break;
                 default:
                     label.setBackground(Color.WHITE);

@@ -31,13 +31,11 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
     private PlanePanel offsetPanel;
     private JPanel objectInfoPanel;
     private ArrayList<NodeMemory.ObjectState> objects;
-    private boolean shouldUpdate;
 
     public MemoryViewer() {
         super(new BorderLayout());
 
         showAll = false;
-        shouldUpdate = false;
         shortSelection = 0;
         showAllSelection = 0;
         objects = new ArrayList<>();
@@ -87,7 +85,6 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
 
     private JList<String> createObjectsList() {
         JList<String> objectsList = new JList<>(new DefaultListModel<>());
-        objectsList.setSelectedIndex(0);
         objectsList.setBorder(new TitledBorder("Objects"));
         objectsList.addListSelectionListener(this);
         objectsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -143,7 +140,6 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
             @Override
             public void actionPerformed(ActionEvent e) {
                 showAll = !showAll;
-                shouldUpdate = false;
                 if (showAll) {
                     showAllButton.setText("Hide");
                     shortSelection = objectsList.getSelectedIndex();
@@ -176,54 +172,52 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         this.sourceLL = sourceLL;
         currentNode = node;
 
-        currentMemory = showAll ? getCompleteMemory(node) : node.getMemory().getMemory();
+        currentMemory = node.getMemory().getMemory();
         displayMemory(currentMemory);
-        shouldUpdate = false;
         objectsList.setSelectedIndex(0);
     }
 
     private void displayMemory(NodeMemory.Memory memory) {
         displayTables(memory);
-        displayObjectInfo(objectsList, memory, objects, sourceLL, objectInfoPanel);
+        displayObjectInfo(objectsList, memory, objects, sourceLL, objectInfoPanel, currentNode);
     }
 
     private void displayTables(NodeMemory.Memory memory) {
         segmentPanel.updateTables(null, showAll);
         offsetPanel.updateTables(null, showAll);
 
-        objects = new ArrayList<>();
-        objects.addAll(memory.additions());
+        objects = new ArrayList<>(memory.additions());
         objects.addAll(memory.changes());
 
-        ArrayList<NodeMemory.ObjectState> deletions = new ArrayList<>();
         for (NodeMemory.Deletion deletion : memory.deletions()) {
-            deletions.add(getDeletedObjectState(currentNode, deletion.objID()));
+            objects.add(getDeletedObjectState(currentNode, deletion.objID()));
         }
 
-        objects.addAll(deletions);
 
-        ((CustomListCellRenderer) objectsList.getCellRenderer()).updateObjectList(objects, memory.deletions(), showAll);
-        ((DefaultListModel<String>) objectsList.getModel()).clear();
+//        int maxDigits = 0;
+//        for (NodeMemory.ObjectState object : objects) {
+//            int length = String.valueOf(object.objID()).length();
+//            if (length > maxDigits) {
+//                maxDigits = length;
+//            }
+//        }
 
-        int maxDigits = 0;
+        ArrayList<String> objectNames = new ArrayList<>();
         for (NodeMemory.ObjectState object : objects) {
-            int length = String.valueOf(object.objID()).length();
-            if (length > maxDigits) {
-                maxDigits = length;
-            }
-        }
-
-        for (NodeMemory.ObjectState object : objects) {
-            String objectName = String.format("%-" + maxDigits + "d", object.objID()); // Left-align with padding
+            String objectName = Integer.toString(object.objID()); // Left-align with padding
 
             if (object.segmentPlane() != null) {
                 objectName += " " + object.segmentPlane().rootObject();
             } else if (object.offsetPlane() != null) {
                 objectName += " " + object.offsetPlane().rootObject();
             }
-
-            ((DefaultListModel<String>) objectsList.getModel()).addElement(objectName);
+            objectNames.add(objectName);
         }
+        DefaultListModel<String> model = (DefaultListModel<String>) objectsList.getModel();
+        model.clear();
+        model.addAll(objectNames);
+        ((CustomListCellRenderer) objectsList.getCellRenderer()).updateObjectList(objects, memory.deletions(), showAll);
+
 
         if (showAll) {
             objectsList.setSelectedIndex(showAllSelection);
@@ -264,11 +258,8 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
             return;
         }
 
-        if (shouldUpdate) {
-            updatePlanes();
-            displayObjectInfo(objectsList, currentNode.getMemory().getMemory(), objects, sourceLL, objectInfoPanel);
-        } else {
-            shouldUpdate = true;
-        }
+        updatePlanes();
+        displayObjectInfo(objectsList, currentNode.getMemory().getMemory(), objects, sourceLL, objectInfoPanel, currentNode);
+
     }
 }

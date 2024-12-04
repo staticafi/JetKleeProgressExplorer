@@ -30,7 +30,7 @@ public class TreeViewer extends JPanel {
     private static final int NODE_SEPARATOR_VERTICAL = 200;
     private static final int NODE_WIDTH = 100;
     private static final int NODE_HEIGHT = 50;
-    private static final float EDGE_THICKNESS = 1.0f;
+    private static final float EDGE_THICKNESS = 2.0f;
 
     /**
      * Enables mouse dragging to navigate through the process tree displayed in the tree panel.
@@ -179,7 +179,7 @@ public class TreeViewer extends JPanel {
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setStroke(new BasicStroke(EDGE_THICKNESS));
             drawSubTree(g2d, tree.getRoot(), getVisibleRect());
-            if (selectedNode != null) {
+            if (selectedNode != null && isVisibleNode(selectedNode, selectedRound)) {
                 drawCross(g, selectedNode);
             }
         }
@@ -187,7 +187,7 @@ public class TreeViewer extends JPanel {
 
     private void drawCross(Graphics g, Node node) {
         Graphics2D g2d = (Graphics2D) g;
-        g2d.setColor(Color.GRAY);
+        g2d.setColor(CROSS_COLOR);
         int nodeX = Math.round(zoom * node.getViewProps().getX());
         int nodeY = Math.round(zoom * node.getViewProps().getY());
 

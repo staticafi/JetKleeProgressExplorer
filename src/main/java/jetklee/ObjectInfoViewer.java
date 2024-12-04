@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 
+import static jetklee.CompleteMemoryRetriever.getDeletedObjectState;
 import static jetklee.HtmlFormatter.appendKeyValueInlineNonBold;
 import static jetklee.Styles.KEY_COLOR;
 
@@ -11,7 +12,7 @@ public class ObjectInfoViewer {
 
     public static void displayObjectInfo(JList<String> objectsList, NodeMemory.Memory memory,
                                          ArrayList<NodeMemory.ObjectState> objects, SourceViewerLL sourceLL,
-                                         JPanel objectInfoPanel) {
+                                         JPanel objectInfoPanel, Node node) {
         objectInfoPanel.removeAll();
 
         if (objectsList.getSelectedIndex() < 0) {
@@ -25,15 +26,15 @@ public class ObjectInfoViewer {
         boolean isDeletion = memory.deletions().stream()
                 .anyMatch(deletion -> deletion.objID() == selected);
 
+        NodeMemory.ObjectState currentObjectState;
         if (isDeletion) {
-            return;
+            currentObjectState = getDeletedObjectState(node, selected);
+        } else {
+            currentObjectState = objects.stream()
+                    .filter(obj -> obj.objID() == selected)
+                    .findFirst()
+                    .orElse(null);
         }
-
-        NodeMemory.ObjectState currentObjectState = objects.stream()
-                .filter(obj -> obj.objID() == selected)
-                .findFirst()
-                .orElse(null);
-
         if (currentObjectState == null) {
             return;
         }
