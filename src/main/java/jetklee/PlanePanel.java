@@ -3,15 +3,20 @@ package jetklee;
 import javax.swing.*;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.util.ArrayList;
 import java.util.Map;
 
 import static jetklee.Styles.*;
 
-/** Panel that displays memory plane of selected object state.*/
+/**
+ * Panel that displays memory plane of selected object state.
+ */
 public class PlanePanel extends JPanel {
     private NodeMemory.Plane currentPlane;
+    private boolean showAll;
     private JCheckBox sortByOffsetCheckBox;
     private JPanel concretePanel;
     private JPanel symbolicPanel;
@@ -23,9 +28,17 @@ public class PlanePanel extends JPanel {
     public PlanePanel() {
         super(new BorderLayout());
 
+        showAll = false;
+
         sortByOffsetCheckBox = new JCheckBox("Sort by Offset");
         sortByOffsetCheckBox.setSelected(true);
-        sortByOffsetCheckBox.addActionListener(e -> updateTables(currentPlane, false));
+        sortByOffsetCheckBox.addActionListener(new ActionListener() {
+            // TODO showall
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateTables(currentPlane, showAll);
+            }
+        });
 
         JPanel controlPanel = new JPanel(new BorderLayout());
         controlPanel.add(sortByOffsetCheckBox, BorderLayout.NORTH);
@@ -62,49 +75,40 @@ public class PlanePanel extends JPanel {
         INDEX, VALUE, MASK
     }
 
-    private void sortByOffset(ArrayList<Object[]> byteEntries, ArrayList<Color> rowColors) {
-        ArrayList<Integer> indices = new ArrayList<>();
-        for (Object[] entry : byteEntries) {
-            indices.add((Integer) entry[0]);
-        }
+    // index can be either a number or a string (symbolic)
+    private void sortByOffset(ArrayList<TableRow> rows) {
+        rows.sort((row1, row2) -> {
+            String index1 = row1.getIndex();
+            String index2 = row2.getIndex();
 
-        ArrayList<Integer> sortedIndices = new ArrayList<>(indices);
-        sortedIndices.sort(Integer::compareTo);
-
-        ArrayList<Object[]> sortedByteEntries = new ArrayList<>();
-        ArrayList<Color> sortedRowColors = new ArrayList<>();
-
-        for (Integer sortedIndex : sortedIndices) {
-            int originalPosition = indices.indexOf(sortedIndex);
-            sortedByteEntries.add(byteEntries.get(originalPosition));
-            sortedRowColors.add(rowColors.get(originalPosition));
-            indices.set(originalPosition, null);
-        }
-        byteEntries.clear();
-        rowColors.clear();
-        byteEntries.addAll(sortedByteEntries);
-        rowColors.addAll(sortedRowColors);
+            try {
+                int num1 = Integer.parseInt(index1);
+                int num2 = Integer.parseInt(index2);
+                return Integer.compare(num1, num2);
+            } catch (NumberFormatException e) {
+                return index1.compareTo(index2);
+            }
+        });
     }
 
+
     private void updateBytesTable(JPanel bytePanel, String[] byteColumns, boolean isConcrete, boolean showAll) {
-        assert currentPlane != null;
+        NodeMemory.ByteMap additions = new NodeMemory.ByteMap();
+        NodeMemory.ByteMap deletions = new NodeMemory.ByteMap();
+        NodeMemory.ByteMap maskAdditions = new NodeMemory.ByteMap();
+        NodeMemory.ByteMap maskDeletions = new NodeMemory.ByteMap();
 
-        NodeMemory.ByteMap additions;
-        NodeMemory.ByteMap deletions;
-        NodeMemory.ByteMap maskAdditions = currentPlane.concreteMask().additions();
-        NodeMemory.ByteMap maskDeletions = currentPlane.concreteMask().deletions();
+        if (currentPlane != null) {
+            maskAdditions = currentPlane.concreteMask().additions();
+            maskDeletions = currentPlane.concreteMask().deletions();
 
-        if (isConcrete) {
-            additions = currentPlane.concreteStore().additions();
-            deletions = currentPlane.concreteStore().deletions();
-        } else {
-            additions = currentPlane.knownSymbolics().additions();
-            deletions = currentPlane.knownSymbolics().deletions();
-        }
-
-        if (additions.isEmpty() && deletions.isEmpty()) {
-            clearTable(bytePanel);
-            return;
+            if (isConcrete) {
+                additions = currentPlane.concreteStore().additions();
+                deletions = currentPlane.concreteStore().deletions();
+            } else {
+                additions = currentPlane.knownSymbolics().additions();
+                deletions = currentPlane.knownSymbolics().deletions();
+            }
         }
 
         ArrayList<TableRow> byteRows = new ArrayList<>();
@@ -113,9 +117,9 @@ public class PlanePanel extends JPanel {
         byteRows.addAll(getByteRows(deletions, showAll ? BACKGROUND_COLOR : DELETIONS_COLOR, maskDeletions,
                 isConcrete));
 
-//        if (sortByOffsetCheckBox.isSelected()) {
-//            sortByOffset(byteEntries, rowColors);
-//        }
+        if (sortByOffsetCheckBox.isSelected()) {
+            sortByOffset(byteRows);
+        }
 
         JTable byteTable = createBytesTable(byteRows, byteColumns, isConcrete);
 
@@ -174,7 +178,7 @@ public class PlanePanel extends JPanel {
                     Object value = table.getValueAt(row, column);
                     boolean isSymbolic = table.getValueAt(row, Column.MASK.ordinal()) == "true";
                     if (value != null && value != "" && isSymbolic) {
-                        showPopup(value.toString(), "Value");
+                        showPopup(value.toString());
                     }
                 }
             }
@@ -204,20 +208,13 @@ public class PlanePanel extends JPanel {
     }
 
     private void updateUpdatesTable() {
-        assert currentPlane != null;
-
-        NodeMemory.Updates updates = currentPlane.updates();
-
-        if (updates.isEmpty()) {
-            clearTable(updatePanel);
-            return;
-        }
+        NodeMemory.Updates updates = currentPlane == null ? new NodeMemory.Updates() : currentPlane.updates();
 
         ArrayList<TableRow> updateRows = getUpdateRows(updates);
 
-//        if (sortByOffsetCheckBox.isSelected()) {
-//            numericUpdates.sort(Comparator.comparingInt(entry -> Integer.parseInt((String) entry[0])));
-//        }
+        if (sortByOffsetCheckBox.isSelected()) {
+            sortByOffset(updateRows);
+        }
 
         JTable updateTable = createUpdatesTable(updateRows, UPDATE_COLUMNS);
 
@@ -228,13 +225,7 @@ public class PlanePanel extends JPanel {
     }
 
     public void updateTables(NodeMemory.Plane plane, boolean showAll) {
-        if (plane == null) {
-            clearTable(updatePanel);
-            clearTable(concretePanel);
-            clearTable(symbolicPanel);
-            return;
-        }
-
+        this.showAll = showAll;
         this.currentPlane = plane;
         updateBytesTable(concretePanel, CONCRETE_COLUMNS, true, showAll);
         updateBytesTable(symbolicPanel, SYMBOLIC_COLUMNS, false, showAll);
@@ -250,8 +241,8 @@ public class PlanePanel extends JPanel {
         return null;
     }
 
-    private void showPopup(String value, String title) {
-        JFrame popup = new JFrame(title);
+    private void showPopup(String value) {
+        JFrame popup = new JFrame("Value");
         popup.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         popup.setSize(400, 300);
         popup.setResizable(true);
@@ -267,6 +258,5 @@ public class PlanePanel extends JPanel {
         popup.setLocationRelativeTo(this);
         popup.setVisible(true);
     }
-
 
 }
