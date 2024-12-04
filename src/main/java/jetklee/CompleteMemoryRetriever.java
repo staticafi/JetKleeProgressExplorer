@@ -7,6 +7,26 @@ import java.util.HashMap;
  * Retrieves the complete memory of a node (decompress memory).
  */
 public class CompleteMemoryRetriever {
+    public static NodeMemory.ObjectState getDeletedObjectState(Node node, int objID) {
+        Node current = node;
+
+        // search for the memory of the deleted object
+        while (true) {
+            NodeMemory.Memory memory = current.getMemory().getMemory();
+            for (NodeMemory.ObjectState addition : memory.additions()) {
+                if (addition.objID() == objID) {
+                    return addition;
+                }
+            }
+            for (NodeMemory.ObjectState change : memory.changes()) {
+                if (change.objID() == objID) {
+                    return change;
+                }
+            }
+            assert current.getParent() != null; // the node which was deleted must have been created before
+            current = current.getParent();
+        }
+    }
     public static NodeMemory.Memory getCompleteMemory(Node node) {
         HashMap<Integer, NodeMemory.ObjectState> complete_memory = new HashMap<>();
         ArrayList<Node> nodes = new ArrayList<>();

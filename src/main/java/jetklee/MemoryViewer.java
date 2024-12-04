@@ -8,9 +8,9 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import static jetklee.CompleteMemoryRetriever.getCompleteMemory;
+import static jetklee.CompleteMemoryRetriever.getDeletedObjectState;
 import static jetklee.ObjectInfoViewer.displayObjectInfo;
 
 /**
@@ -22,8 +22,8 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
     private int shortSelection;
     private JButton showAllButton;
     private Node currentNode;
+    private NodeMemory.Memory currentMemory;
     private SourceViewerLL sourceLL;
-
     private ObjectInfoViewer objectInfoViewer;
     private JList<String> objectsList;
     private JScrollPane objectScrollPane;
@@ -31,11 +31,13 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
     private PlanePanel offsetPanel;
     private JPanel objectInfoPanel;
     private ArrayList<NodeMemory.ObjectState> objects;
+    private boolean shouldUpdate;
 
     public MemoryViewer() {
         super(new BorderLayout());
 
         showAll = false;
+        shouldUpdate = false;
         shortSelection = 0;
         showAllSelection = 0;
         objects = new ArrayList<>();
@@ -141,20 +143,25 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
             @Override
             public void actionPerformed(ActionEvent e) {
                 showAll = !showAll;
-                NodeMemory.Memory memory;
+                shouldUpdate = false;
                 if (showAll) {
                     showAllButton.setText("Hide");
                     shortSelection = objectsList.getSelectedIndex();
-                    memory = getCompleteMemory(currentNode);
-//                    objectsList.setSelectedIndex(showAllSelection);
+                    if (shortSelection < 0 || shortSelection >= objects.size()) {
+                        shortSelection = 0;
+                    }
+                    currentMemory = getCompleteMemory(currentNode);
+                    objectsList.setSelectedIndex(showAllSelection);
                 } else {
                     showAllButton.setText("Show All");
                     showAllSelection = objectsList.getSelectedIndex();
-                    displayMemory(currentNode.getMemory().getMemory());
-                    memory = currentNode.getMemory().getMemory();
-//                    objectsList.setSelectedIndex(shortSelection);
+                    if (showAllSelection < 0 || showAllSelection >= objects.size()) {
+                        showAllSelection = 0;
+                    }
+                    currentMemory = currentNode.getMemory().getMemory();
+                    objectsList.setSelectedIndex(shortSelection);
                 }
-                displayMemory(memory);
+                displayMemory(currentMemory);
             }
         };
     }
@@ -168,10 +175,11 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
     public void setupAndDisplayMemory(Node node, SourceViewerLL sourceLL) {
         this.sourceLL = sourceLL;
         currentNode = node;
-//        objectsList.setSelectedIndex(0);
 
-        NodeMemory.Memory memory = showAll ? getCompleteMemory(node) : node.getMemory().getMemory();
-        displayMemory(memory);
+        currentMemory = showAll ? getCompleteMemory(node) : node.getMemory().getMemory();
+        displayMemory(currentMemory);
+        shouldUpdate = false;
+        objectsList.setSelectedIndex(0);
     }
 
     private void displayMemory(NodeMemory.Memory memory) {
@@ -189,7 +197,7 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
 
         ArrayList<NodeMemory.ObjectState> deletions = new ArrayList<>();
         for (NodeMemory.Deletion deletion : memory.deletions()) {
-            deletions.add(getDeletedObjectState(deletion.objID()));
+            deletions.add(getDeletedObjectState(currentNode, deletion.objID()));
         }
 
         objects.addAll(deletions);
@@ -217,15 +225,11 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
             ((DefaultListModel<String>) objectsList.getModel()).addElement(objectName);
         }
 
-//        objectsList.setSelectedIndex(0);
-
-//        if (showAll) {
-//            objectsList.setSelectedIndex(showAllSelection);
-//        } else {
-//            objectsList.setSelectedIndex(shortSelection);
-//        }
-//        updatePlanes();
-//        displayObjectInfo();
+        if (showAll) {
+            objectsList.setSelectedIndex(showAllSelection);
+        } else {
+            objectsList.setSelectedIndex(shortSelection);
+        }
     }
 
     private void updatePlanes() {
@@ -246,7 +250,7 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
         if (currentObjectState != null) {
             NodeMemory.Plane offsetPlane = currentObjectState.offsetPlane();
             NodeMemory.Plane segmentPlane = currentObjectState.segmentPlane();
-            segmentPanel.updateTables(segmentPlane, showAll);
+            segmentPanel.updateTables(segmentPlane, showAll); // TODO currentObjectState type
             offsetPanel.updateTables(offsetPlane, showAll);
         } else {
             segmentPanel.updateTables(null, showAll);
@@ -256,36 +260,15 @@ public class MemoryViewer extends JPanel implements ListSelectionListener {
 
     @Override
     public void valueChanged(ListSelectionEvent e) {
-        if (e.getSource() != objectsList) return;
-        if (objectsList.getValueIsAdjusting()) return;
-        if (objectsList.getSelectedIndex() < 0) return;
+        if (e.getSource() != objectsList || objectsList.getValueIsAdjusting() || objectsList.getSelectedIndex() < 0 ) {
+            return;
+        }
 
-        // remove table headers for empty tables
-        segmentPanel.updateTables(null, showAll);
-        offsetPanel.updateTables(null, showAll);
-
-        updatePlanes();
-        displayObjectInfo(objectsList, currentNode.getMemory().getMemory(), objects, sourceLL, objectInfoPanel);
-    }
-
-    private NodeMemory.ObjectState getDeletedObjectState(int objID) {
-        Node current = currentNode;
-
-        // search for the memory of the deleted object
-        while (true) {
-            NodeMemory.Memory memory = current.getMemory().getMemory();
-            for (NodeMemory.ObjectState addition : memory.additions()) {
-                if (addition.objID() == objID) {
-                    return addition;
-                }
-            }
-            for (NodeMemory.ObjectState change : memory.changes()) {
-                if (change.objID() == objID) {
-                    return change;
-                }
-            }
-            assert current.getParent() != null; // the node which was deleted must have been created before
-            current = current.getParent();
+        if (shouldUpdate) {
+            updatePlanes();
+            displayObjectInfo(objectsList, currentNode.getMemory().getMemory(), objects, sourceLL, objectInfoPanel);
+        } else {
+            shouldUpdate = true;
         }
     }
 }
