@@ -19,34 +19,33 @@ public class ContextViewer extends TextViewerBase {
      *
      * @param info to display.
      */
-    public void displayContext(NodeInfo info) {
-        NodeInfo.Context context = info.getContext();
+    public void displayContext(ExecutionState.Context context) {
         String html = "<html><body style='font-family:" + INFO_FONT + "; font-size:" + INFO_FONT_SIZE + ";padding:5px;'>" +
                 createNodeInfoRow(context) +
                 createStateInfoRow(context) +
-                createLocationRow("location", context.location()) +
-                createLocationRow("nextLocation", context.nextLocation()) +
+                createLocationRow("firstLocation", context.insertContext().firstLocation()) +
+                createLocationRow("lastLocation", context.lastLocation()) +
                 createStackRow(context) +
                 "</body></html>";
 
         displayInEditorPane(html);
     }
 
-    private String createNodeInfoRow(NodeInfo.Context context) {
+    private String createNodeInfoRow(ExecutionState.Context context) {
         StringBuilder row = new StringBuilder();
-        row.append("<b style='color:" + KEY_COLOR + ";'>nodeId: </b>").append(context.nodeID()).append("<br>");
+        row.append("<b style='color:" + KEY_COLOR + ";'>nodeId: </b>").append(context.insertContext().nodeID()).append("<br>");
 
-        appendKeyValueInlineNonBold(row, "stateId", context.stateID());
+        appendKeyValueInlineNonBold(row, "stateId", context.insertContext().stateID());
         appendKeyValueInlineNonBold(row, "parentId", context.parentID());
-        appendKeyValueInlineNonBold(row, "nextId", context.nextID());
+        appendKeyValueInlineNonBold(row, "nextId", context.insertContext().nextStateID());
         appendKeyValueInlineNonBold(row, "depth", context.depth());
         row.append("<br>");
         return row.toString();
     }
 
-    private String createStateInfoRow(NodeInfo.Context context) {
+    private String createStateInfoRow(ExecutionState.Context context) {
         StringBuilder row = new StringBuilder();
-        appendKeyValueInlineNonBold(row, "uniqueState", context.uniqueState());
+        appendKeyValueInlineNonBold(row, "uniqueState", context.insertContext().uniqueState());
         appendKeyValueInlineNonBold(row, "coveredNew", context.coveredNew());
         appendKeyValueInlineNonBold(row, "forkDisabled", context.forkDisabled());
         appendKeyValueInlineNonBold(row, "instsSinceCovNew", context.instsSinceCovNew());
@@ -55,7 +54,7 @@ public class ContextViewer extends TextViewerBase {
         return row.toString();
     }
 
-    private String createLocationRow(String label, NodeInfo.Location location) {
+    private String createLocationRow(String label, ExecutionState.Location location) {
         return "<div><b><span style='color:" + KEY_COLOR + ";'>" + label + ":</span></b><br>" +
                 "&nbsp;&nbsp;- <span style='color:" + KEY_COLOR + ";'>file:</span>" + location.file() + "<br>" +
                 "&nbsp;&nbsp;- <span style='color:" + KEY_COLOR + ";'>line:</span>" + location.line() + "<br>" +
@@ -64,11 +63,11 @@ public class ContextViewer extends TextViewerBase {
                 "</div><br>";
     }
 
-    private String createStackRow(NodeInfo.Context context) {
+    private String createStackRow(ExecutionState.Context context) {
         StringBuilder stackBuilder = new StringBuilder();
         stackBuilder.append("<div><b><span style='color:").append(KEY_COLOR).append(";'>stack:</span></b><br>");
 
-        for (NodeInfo.Location stackLocation : context.stack()) {
+        for (ExecutionState.Location stackLocation : context.stack()) {
             stackBuilder.append("&nbsp;&nbsp;- <span style='color:").append(KEY_COLOR).append(";'>file:</span> ")
                     .append(stackLocation.file())
                     .append(" <span style='color:").append(KEY_COLOR).append(";'>line:</span> ").append(stackLocation.line())

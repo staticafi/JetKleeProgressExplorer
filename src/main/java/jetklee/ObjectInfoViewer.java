@@ -7,12 +7,11 @@ import java.util.ArrayList;
 import static jetklee.CompleteMemoryRetriever.getDeletedObjectState;
 import static jetklee.HtmlFormatter.appendKeyValueInlineNonBold;
 import static jetklee.Styles.INFO_FONT_SIZE;
-import static jetklee.Styles.KEY_COLOR;
 
 public class ObjectInfoViewer {
 
-    public static void displayObjectInfo(JList<String> objectsList, NodeMemory.Memory memory,
-                                         ArrayList<NodeMemory.ObjectState> objects, SourceViewerLL sourceLL,
+    public static void displayObjectInfo(JList<String> objectsList, ExecutionState.Memory memory,
+                                         ArrayList<ExecutionState.ObjectState> objects, SourceViewerLL sourceLL,
                                          JPanel objectInfoPanel, Node node) {
         objectInfoPanel.removeAll();
 
@@ -27,7 +26,7 @@ public class ObjectInfoViewer {
         boolean isDeletion = memory.deletions().stream()
                 .anyMatch(deletion -> deletion.objID() == selected);
 
-        NodeMemory.ObjectState currentObjectState;
+        ExecutionState.ObjectState currentObjectState;
         if (isDeletion) {
             currentObjectState = getDeletedObjectState(node, selected);
         } else {
@@ -51,12 +50,10 @@ public class ObjectInfoViewer {
         appendKeyValueInlineNonBold(htmlContent, "name", currentObjectState.name());
         appendKeyValueInlineNonBold(htmlContent, "size", currentObjectState.size());
         appendKeyValueInlineNonBold(htmlContent, "copyOnWriteOwner", currentObjectState.copyOnWriteOwner());
-        appendKeyValueInlineNonBold(htmlContent, "symbolicAddress", currentObjectState.symAddress());
         htmlContent.append("<br>");
 
         // Row 3: Local, Global, Fixed, User Spec, Lazy, Read-Only
         appendKeyValueInlineNonBold(htmlContent, "local", currentObjectState.isLocal());
-        appendKeyValueInlineNonBold(htmlContent, "global", currentObjectState.isGlobal());
         appendKeyValueInlineNonBold(htmlContent, "fixed", currentObjectState.isFixed());
         appendKeyValueInlineNonBold(htmlContent, "userSpec", currentObjectState.isUserSpec());
         appendKeyValueInlineNonBold(htmlContent, "lazy", currentObjectState.isLazy());
@@ -66,7 +63,7 @@ public class ObjectInfoViewer {
 
         if (currentObjectState.allocSite() != null) {
             htmlContent.append("<b style='color:blue;'>allocSite</b><br>");
-            NodeMemory.AllocSite allocSite = currentObjectState.allocSite();
+            ExecutionState.AllocSite allocSite = currentObjectState.allocSite();
             String name = allocSite.name();
             String functionLine = "";
 
@@ -109,7 +106,7 @@ public class ObjectInfoViewer {
         objectInfoPanel.repaint();
     }
 
-    private static String formatAllocSiteAsList(NodeMemory.AllocSite allocSite, String functionLine) {
+    private static String formatAllocSiteAsList(ExecutionState.AllocSite allocSite, String functionLine) {
         return "<div><span style='color:blue;'>code:</span> " + allocSite.code() + "<br>" +
                 "<span style='color:blue;'>scope:</span> " + allocSite.scope() + "<br>" +
                 "&nbsp;&nbsp;&nbsp;&nbsp;- <span style='color:blue;'>name:</span> " + allocSite.name() + "<br>" +
@@ -117,7 +114,7 @@ public class ObjectInfoViewer {
                 "</div>";
     }
 
-    private static void appendPlaneDetailsHTML(StringBuilder html, NodeMemory.Plane plane) {
+    private static void appendPlaneDetailsHTML(StringBuilder html, ExecutionState.Plane plane) {
         appendKeyValueInlineNonBold(html, "rootObject", plane.rootObject());
         appendKeyValueInlineNonBold(html, "initialValue", plane.initialValue());
         appendKeyValueInlineNonBold(html, "sizeBound", plane.sizeBound());

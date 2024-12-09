@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * Parses and holds information about execution state of the process tree
  */
-public class NodeMemory {
+public class ExecutionState {
     public record Diff(ByteMap additions, ByteMap deletions) {
     }
 
@@ -19,9 +19,8 @@ public class NodeMemory {
     }
 
     public record ObjectState(int objID, OperationType type, int segment, String name, String size, boolean isLocal,
-                              boolean isGlobal, boolean isFixed, boolean isUserSpec, boolean isLazy, String symAddress,
-                              int copyOnWriteOwner, boolean readOnly, AllocSite allocSite, Plane segmentPlane,
-                              Plane offsetPlane) {
+                              boolean isFixed, boolean isUserSpec, boolean isLazy, int copyOnWriteOwner,
+                              boolean readOnly, AllocSite allocSite, Plane segmentPlane, Plane offsetPlane) {
     }
 
     public static class ByteMap extends HashMap<String, ArrayList<Integer>> {
@@ -56,16 +55,86 @@ public class NodeMemory {
     public static class Updates extends ArrayList<Map.Entry<String, String>> {
     }
 
+    public record Location(String file, int line, int column, int assemblyLine) {
+    }
+
+    public record Context(InsertContext insertContext, int parentID, int parentJSON, Location lastLocation, int depth,
+                          boolean coveredNew, boolean forkDisabled, int instsSinceCovNew, int steppedInstructions,
+                          ArrayList<Location> stack) {
+    }
+
+    public record InsertContext(int nodeID, int stateID, boolean uniqueState, Location firstLocation, int nextStateID){}
+
+    private Context context;
+    private InsertContext insertContext;
     private Memory memory;
+    private ArrayList<String> constraints;
 
     private int id;
 
     /**
-     * @param data information about one execution state
+     * @param treeData information about one execution state
      */
-    public NodeMemory(JSONObject data, int id) {
-        this.memory = parseMemory(data);
+    public ExecutionState(JSONObject treeData, int id) {
         this.id = id;
+        this.insertContext = parseContextInsert(treeData);
+    }
+
+    public void setNodeInfoData(JSONObject nodeInfoData) {
+        this.memory = parseMemory(nodeInfoData);
+        this.constraints = parseConstraints(nodeInfoData);
+        this.context = parseContext(nodeInfoData);
+    }
+
+    private Context parseContext(JSONObject memoryData) {
+        Location lastLocation = parseLocation(memoryData, "lastLocation");
+        JSONArray stackJSON = memoryData.getJSONArray("stack");
+        ArrayList<Location> stack = new ArrayList<>();
+        for (int i = 0; i < stackJSON.length(); i++) {
+            JSONArray stackLocationJSON = stackJSON.getJSONArray(i);
+            Location stackLocation = new Location(
+                    stackLocationJSON.getString(0),
+                    stackLocationJSON.getInt(1),
+                    stackLocationJSON.getInt(2),
+                    stackLocationJSON.getInt(3)
+            );
+            stack.add(stackLocation);
+        }
+
+        return new Context(
+                insertContext,
+                memoryData.getInt("parentID"),
+                memoryData.getInt("parentJSON"),
+                lastLocation,
+                memoryData.getInt("depth"),
+                memoryData.getInt("coveredNew") == 1,
+                memoryData.getInt("forkDisabled") == 1,
+                memoryData.getInt("instsSinceCovNew"),
+                memoryData.getInt("steppedInstructions"),
+                stack
+        );
+    }
+
+    private InsertContext parseContextInsert(JSONObject treeData) {
+        Location firstLocation = parseLocation(treeData, "firstLocation");
+
+        return new InsertContext(
+                treeData.getInt("nodeID"),
+                treeData.getInt("stateID"),
+                treeData.getInt("uniqueState") == 1,
+                firstLocation,
+                treeData.getInt("nextStateID")
+        );
+    }
+
+    private Location parseLocation(JSONObject data, String location) {
+        JSONArray locationJSON = data.getJSONArray(location);
+        return new Location(
+                locationJSON.getString(0),
+                locationJSON.getInt(1),
+                locationJSON.getInt(2),
+                locationJSON.getInt(3)
+        );
     }
 
     private Memory parseMemory(JSONObject data) {
@@ -118,11 +187,9 @@ public class NodeMemory {
                     objectStateJSON.getString("name"),
                     objectStateJSON.getString("size"),
                     objectStateJSON.getInt("isLocal") == 1,
-                    objectStateJSON.getInt("isGlobal") == 1,
                     objectStateJSON.getInt("isFixed") == 1,
                     objectStateJSON.getInt("isUserSpec") == 1,
                     objectStateJSON.getInt("isLazy") == 1,
-                    objectStateJSON.getString("symAddress"),
                     objectStateJSON.getInt("copyOnWriteOwner"),
                     objectStateJSON.getInt("readOnly") == 1,
                     allocSite,
@@ -217,11 +284,27 @@ public class NodeMemory {
         );
     }
 
+    private ArrayList<String> parseConstraints(JSONObject data) {
+        ArrayList<String> constraints = new ArrayList<>();
+        JSONArray constraintsJSON = data.getJSONArray("constraints");
+
+        for (int i = 0; i < constraintsJSON.length(); i++) {
+            constraints.add(constraintsJSON.get(i).toString());
+        }
+        return constraints;
+    }
+    public ArrayList<String> getConstraints() {
+        return constraints;
+    }
+
     public Memory getMemory() {
         return memory;
     }
 
     public int getId() {
         return id;
+    }
+    public Context getContext() {
+        return context;
     }
 }

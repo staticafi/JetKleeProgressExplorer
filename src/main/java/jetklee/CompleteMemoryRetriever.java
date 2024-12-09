@@ -7,18 +7,18 @@ import java.util.HashMap;
  * Retrieves the complete memory of a node (decompress memory).
  */
 public class CompleteMemoryRetriever {
-    public static NodeMemory.ObjectState getDeletedObjectState(Node node, int objID) {
+    public static ExecutionState.ObjectState getDeletedObjectState(Node node, int objID) {
         Node current = node;
 
         // search for the memory of the deleted object
         while (true) {
-            NodeMemory.Memory memory = current.getMemory().getMemory();
-            for (NodeMemory.ObjectState addition : memory.additions()) {
+            ExecutionState.Memory memory = current.getExecutionState().getMemory();
+            for (ExecutionState.ObjectState addition : memory.additions()) {
                 if (addition.objID() == objID) {
                     return addition;
                 }
             }
-            for (NodeMemory.ObjectState change : memory.changes()) {
+            for (ExecutionState.ObjectState change : memory.changes()) {
                 if (change.objID() == objID) {
                     return change;
                 }
@@ -27,8 +27,8 @@ public class CompleteMemoryRetriever {
             current = current.getParent();
         }
     }
-    public static NodeMemory.Memory getCompleteMemory(Node node) {
-        HashMap<Integer, NodeMemory.ObjectState> complete_memory = new HashMap<>();
+    public static ExecutionState.Memory getCompleteMemory(Node node) {
+        HashMap<Integer, ExecutionState.ObjectState> complete_memory = new HashMap<>();
         ArrayList<Node> nodes = new ArrayList<>();
 
         nodes.add(node);
@@ -38,40 +38,39 @@ public class CompleteMemoryRetriever {
         }
         // The nodes are in order from leaf to root, traverse them in reverse order (from root to leaf)
         for (int i = nodes.size() - 1; i >= 0; i--) {
-            NodeMemory.Memory node_memory = nodes.get(i).getMemory().getMemory();
+            ExecutionState.Memory node_memory = nodes.get(i).getExecutionState().getMemory();
 
             // Add newly added objects
-            for (NodeMemory.ObjectState addition : node_memory.additions()) {
+            for (ExecutionState.ObjectState addition : node_memory.additions()) {
                 complete_memory.put(addition.objID(), addition);
             }
 
             // Apply changes to changed objects
-            for (NodeMemory.ObjectState change : node_memory.changes()) {
-                NodeMemory.ObjectState oldObjectState = complete_memory.get(change.objID());
+            for (ExecutionState.ObjectState change : node_memory.changes()) {
+                ExecutionState.ObjectState oldObjectState = complete_memory.get(change.objID());
                 complete_memory.put(change.objID(), mergeObjectState(oldObjectState, change));
             }
 
             // Remove deleted objects
-            for (NodeMemory.Deletion deletion : node_memory.deletions()) {
+            for (ExecutionState.Deletion deletion : node_memory.deletions()) {
                 complete_memory.remove(deletion.objID());
             }
         }
 
         // Save the complete memory in additions
-        return new NodeMemory.Memory(new ArrayList<>(complete_memory.values()), new ArrayList<>(), new ArrayList<>());
+        return new ExecutionState.Memory(new ArrayList<>(complete_memory.values()), new ArrayList<>(), new ArrayList<>());
     }
 
-    private static NodeMemory.ObjectState mergeObjectState(NodeMemory.ObjectState a, NodeMemory.ObjectState b) {
-        NodeMemory.Plane mergedSegmentPlane = mergePlane(a.segmentPlane(), b.segmentPlane());
-        NodeMemory.Plane mergedOffsetPlane = mergePlane(a.offsetPlane(), b.offsetPlane());
+    private static ExecutionState.ObjectState mergeObjectState(ExecutionState.ObjectState a, ExecutionState.ObjectState b) {
+        ExecutionState.Plane mergedSegmentPlane = mergePlane(a.segmentPlane(), b.segmentPlane());
+        ExecutionState.Plane mergedOffsetPlane = mergePlane(a.offsetPlane(), b.offsetPlane());
 
-        return new NodeMemory.ObjectState(
-                a.objID(), a.type(), a.segment(), a.name(), a.size(), a.isLocal(), a.isGlobal(),
-                a.isFixed(), a.isUserSpec(), a.isLazy(), a.symAddress(), a.copyOnWriteOwner(),
-                a.readOnly(), a.allocSite(), mergedSegmentPlane, mergedOffsetPlane);
+        return new ExecutionState.ObjectState(
+                a.objID(), a.type(), a.segment(), a.name(), a.size(), a.isLocal(), a.isFixed(), a.isUserSpec(),
+                a.isLazy(), a.copyOnWriteOwner(), a.readOnly(), a.allocSite(), mergedSegmentPlane, mergedOffsetPlane);
     }
 
-    private static NodeMemory.Plane mergePlane(NodeMemory.Plane a, NodeMemory.Plane b) {
+    private static ExecutionState.Plane mergePlane(ExecutionState.Plane a, ExecutionState.Plane b) {
         if (a == null && b == null) {
             return null;
         }
@@ -82,7 +81,7 @@ public class CompleteMemoryRetriever {
             return a;
         }
 
-        return new NodeMemory.Plane(
+        return new ExecutionState.Plane(
                 a.type(), a.memoryObjectID(), a.rootObject(), a.sizeBound(), a.initialized(),
                 a.symbolic(), a.initialValue(),
                 mergeDiff(a.concreteStore(), b.concreteStore()),
@@ -91,8 +90,8 @@ public class CompleteMemoryRetriever {
                 mergeUpdates(a.updates(), b.updates()));
     }
 
-    private static NodeMemory.Updates mergeUpdates(NodeMemory.Updates a, NodeMemory.Updates b) {
-        NodeMemory.Updates mergedUpdates = new NodeMemory.Updates();
+    private static ExecutionState.Updates mergeUpdates(ExecutionState.Updates a, ExecutionState.Updates b) {
+        ExecutionState.Updates mergedUpdates = new ExecutionState.Updates();
         if (a != null) {
             mergedUpdates.addAll(a);
         }
@@ -103,8 +102,8 @@ public class CompleteMemoryRetriever {
         return mergedUpdates;
     }
 
-    public static NodeMemory.Diff mergeDiff(NodeMemory.Diff a, NodeMemory.Diff b) {
-        NodeMemory.ByteMap mergedByteMap = new NodeMemory.ByteMap();
+    public static ExecutionState.Diff mergeDiff(ExecutionState.Diff a, ExecutionState.Diff b) {
+        ExecutionState.ByteMap mergedByteMap = new ExecutionState.ByteMap();
 
         // Copy all entries from 'a' into 'mergedByteMap'
         a.additions().forEach((key, indices) -> {
@@ -128,9 +127,9 @@ public class CompleteMemoryRetriever {
             });
         });
 
-        return new NodeMemory.Diff(
+        return new ExecutionState.Diff(
                 mergedByteMap,
                 // The complete state does not contain deletions
-                new NodeMemory.ByteMap());
+                new ExecutionState.ByteMap());
     }
 }

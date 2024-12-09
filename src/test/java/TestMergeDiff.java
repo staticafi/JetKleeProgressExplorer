@@ -1,4 +1,4 @@
-import jetklee.NodeMemory;
+import jetklee.ExecutionState;
 import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestMergeDiff {
 
     // Method to convert Map<String, List<Integer>> to ByteMap
-    private static NodeMemory.ByteMap convertToByteMap(Map<String, List<Integer>> map) {
-        NodeMemory.ByteMap byteMap = new NodeMemory.ByteMap();
+    private static ExecutionState.ByteMap convertToByteMap(Map<String, List<Integer>> map) {
+        ExecutionState.ByteMap byteMap = new ExecutionState.ByteMap();
         for (Map.Entry<String, List<Integer>> entry : map.entrySet()) {
             byteMap.put(entry.getKey(), new ArrayList<>(entry.getValue()));
         }
@@ -20,16 +20,16 @@ public class TestMergeDiff {
     @Test
     public void testMergeDiffSimple() {
         // Arrange: Set up diff1, diff2, and the expected result
-        NodeMemory.Diff diff1 = new NodeMemory.Diff(
+        ExecutionState.Diff diff1 = new ExecutionState.Diff(
                 // additions
                 convertToByteMap(Map.of(
                         "0", List.of(0, 1, 2, 3)
                 )),
                 // deletions
-                new NodeMemory.ByteMap()
+                new ExecutionState.ByteMap()
         );
 
-        NodeMemory.Diff diff2 = new NodeMemory.Diff(
+        ExecutionState.Diff diff2 = new ExecutionState.Diff(
                 // additions
                 convertToByteMap(Map.of(
                         "1", List.of(1, 4)
@@ -40,28 +40,28 @@ public class TestMergeDiff {
                 ))
         );
 
-        NodeMemory.Diff expected = new NodeMemory.Diff(
+        ExecutionState.Diff expected = new ExecutionState.Diff(
                 // additions
                 convertToByteMap(Map.of(
                         "0", List.of(0, 3),
                         "1", List.of(1, 4)
                 )),
                 // deletions
-                new NodeMemory.ByteMap()
+                new ExecutionState.ByteMap()
         );
 
 
         // Act: Call the mergeDiff function
-        NodeMemory.Diff result = mergeDiff(diff1, diff2);
+        ExecutionState.Diff result = mergeDiff(diff1, diff2);
 
         // check if the original diff1 and diff2 are not modified
-        NodeMemory.Diff diff1Expected = new NodeMemory.Diff(
+        ExecutionState.Diff diff1Expected = new ExecutionState.Diff(
                 convertToByteMap(Map.of(
                         "0", List.of(0, 1, 2, 3)
                 )),
-                new NodeMemory.ByteMap()
+                new ExecutionState.ByteMap()
         );
-        NodeMemory.Diff diff2Expected = new NodeMemory.Diff(
+        ExecutionState.Diff diff2Expected = new ExecutionState.Diff(
                 convertToByteMap(Map.of(
                         "1", List.of(1, 4)
                 )),
@@ -80,16 +80,16 @@ public class TestMergeDiff {
     @Test
     public void testMergeDiffDuplicateKey() {
         // Arrange: Set up diff1, diff2, and the expected result
-        NodeMemory.Diff diff1 = new NodeMemory.Diff(
+        ExecutionState.Diff diff1 = new ExecutionState.Diff(
                 // additions
                 convertToByteMap(Map.of(
                         "0", List.of(0, 1, 2, 3)
                 )),
                 // deletions
-                new NodeMemory.ByteMap()
+                new ExecutionState.ByteMap()
         );
 
-        NodeMemory.Diff diff2 = new NodeMemory.Diff(
+        ExecutionState.Diff diff2 = new ExecutionState.Diff(
                 // additions
                 convertToByteMap(Map.of(
                         "222", List.of(0)
@@ -100,17 +100,17 @@ public class TestMergeDiff {
                 ))
         );
 
-        NodeMemory.Diff expected = new NodeMemory.Diff(
+        ExecutionState.Diff expected = new ExecutionState.Diff(
                 // additions
                 convertToByteMap(Map.of(
                         "0", List.of(1, 2, 3),
                         "222", List.of(0)
                 )),
-                new NodeMemory.ByteMap()
+                new ExecutionState.ByteMap()
         );
 
         // Act: Call the mergeDiff function
-        NodeMemory.Diff result = mergeDiff(diff1, diff2);
+        ExecutionState.Diff result = mergeDiff(diff1, diff2);
 
         // Assert: Check if the result matches the expected output
         assertEquals(expected, result, "The merged diff is incorrect");

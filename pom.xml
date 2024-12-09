@@ -42,18 +42,30 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version> <!-- Ensure this is the correct plugin version -->
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>jetklee.ProgressExplorer</mainClass>
+                            <addClasspath>true</addClasspath>
+                            <mainClass>jetklee.ProgressExplorer</mainClass> <!-- Main class fully qualified -->
                         </manifest>
                     </archive>
                     <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                        <descriptorRef>jar-with-dependencies</descriptorRef> <!-- Will include dependencies in the JAR -->
                     </descriptorRefs>
                 </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase> <!-- Bind to the package phase -->
+                        <goals>
+                            <goal>single</goal> <!-- Creates a single fat JAR -->
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
+
 </project>

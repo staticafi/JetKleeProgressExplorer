@@ -14,6 +14,8 @@ import java.util.prefs.Preferences;
 //import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
+import static jetklee.Styles.DELETIONS_COLOR;
+
 /**
  * Represents whole application. Initializes and updates UI components.
  */
@@ -228,7 +230,6 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
         treeViewer.setSelectedRound(roundsList.getSelectedIndex());
         treeViewer.updateArea();
 
-        System.out.println(treeViewer.isSelectedVisible());
         nodeTabbedPane.setVisible(treeViewer.isSelectedVisible());
     }
 
@@ -270,8 +271,10 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
      */
     private void selectCodeLine(Node node, TabbedPane pane) {
         mainTabbedPane.setSelectedIndex(pane.ordinal());
-        sourceC.selectCodeLine(node.getInfo().getContext().location().line());
-        sourceLL.selectCodeLine(node.getInfo().getContext().location().assemblyLine());
+        sourceC.selectCodeLine(node.getExecutionState().getContext().insertContext().firstLocation().line());
+        sourceC.highlightLine(node.getExecutionState().getContext().lastLocation().line(), DELETIONS_COLOR);
+        sourceLL.selectCodeLine(node.getExecutionState().getContext().insertContext().firstLocation().assemblyLine());
+        sourceLL.highlightLine(node.getExecutionState().getContext().lastLocation().assemblyLine(), DELETIONS_COLOR);
     }
 
     /**
@@ -281,8 +284,8 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
      * @param node the node for which information is displayed.
      */
     private void displayNodePane(Node node) {
-        contextViewer.displayContext(node.getInfo());
-        constraintsViewer.displayConstraints(node.getInfo().getConstraints());
+        contextViewer.displayContext(node.getExecutionState().getContext());
+        constraintsViewer.displayConstraints(node.getExecutionState().getConstraints());
         memoryViewer.setupAndDisplayMemory(node, sourceLL);
 
         nodeTabbedPane.setVisible(true);

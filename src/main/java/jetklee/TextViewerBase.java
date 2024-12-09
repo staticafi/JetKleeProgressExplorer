@@ -42,13 +42,13 @@ public abstract class TextViewerBase extends JPanel {
         }
     }
 
-    protected void highlightLine(int line) {
+    protected void highlightLine(int line, Color color) {
         try {
             int startOffset = textArea.getLineStartOffset(line - 1);
             int endOffset = textArea.getLineEndOffset(line - 1);
 
             Highlighter highlighter = textArea.getHighlighter();
-            Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(ADDITIONS_COLOR);
+            Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(color);
             highlighter.addHighlight(startOffset, endOffset, painter);
         } catch (BadLocationException e) {
             // Nothing to do.

@@ -8,15 +8,15 @@ import java.util.List;
 import static jetklee.Styles.*;
 
 public class CustomListCellRenderer extends DefaultListCellRenderer {
-    private final List<NodeMemory.ObjectState> objects;
-    private final List<NodeMemory.Deletion> deletions;
+    private final List<ExecutionState.ObjectState> objects;
+    private final List<ExecutionState.Deletion> deletions;
 
     private boolean showAll;
 
     private static final Color RED_COLOR = new Color(255, 0, 0, 125);
     private static final Color GREEN_COLOR = new Color(34, 139, 34, 125);
 
-    public CustomListCellRenderer(List<NodeMemory.ObjectState> objects, List<NodeMemory.Deletion> deletions, boolean showAll) {
+    public CustomListCellRenderer(List<ExecutionState.ObjectState> objects, List<ExecutionState.Deletion> deletions, boolean showAll) {
         this.objects = objects;
         this.deletions = deletions;
         this.showAll = showAll;
@@ -28,8 +28,8 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
 
         String valueStr = value.toString();
         int objID = Integer.parseInt(valueStr.split(" ")[0]);
-        NodeMemory.ObjectState objectState = getObjectStateById(objID);
-        NodeMemory.Deletion deletionState = getDeletionById(objID);
+        ExecutionState.ObjectState objectState = getObjectStateById(objID);
+        ExecutionState.Deletion deletionState = getDeletionById(objID);
 
         if (deletionState != null) {
             label.setBackground(RED_COLOR);
@@ -62,8 +62,8 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
         return label;
     }
 
-    private NodeMemory.ObjectState getObjectStateById(int objID) {
-        for (NodeMemory.ObjectState object : objects) {
+    private ExecutionState.ObjectState getObjectStateById(int objID) {
+        for (ExecutionState.ObjectState object : objects) {
             if (object.objID() == objID) {
                 return object;
             }
@@ -71,8 +71,8 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
         return null;
     }
 
-    private NodeMemory.Deletion getDeletionById(int objID) {
-        for (NodeMemory.Deletion deletion : deletions) {
+    private ExecutionState.Deletion getDeletionById(int objID) {
+        for (ExecutionState.Deletion deletion : deletions) {
             if (deletion.objID() == objID) {
                 return deletion;
             }
@@ -80,7 +80,7 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
         return null;
     }
 
-    public void updateObjectList(List<NodeMemory.ObjectState> newObjects, List<NodeMemory.Deletion> newDeletions, boolean showAll) {
+    public void updateObjectList(List<ExecutionState.ObjectState> newObjects, List<ExecutionState.Deletion> newDeletions, boolean showAll) {
         this.objects.clear();
         this.objects.addAll(newObjects);
         this.deletions.clear();

@@ -49,9 +49,9 @@ public class Node {
     private Node parent;
     private Node left;
     private Node right;
-    private NodeInfo info;
-    private NodeMemory memory;
     private ViewProps viewProps;
+
+    private ExecutionState es;
 
     /**
      * @param id_ unique node id
@@ -64,6 +64,13 @@ public class Node {
         left = null;
         right = null;
         viewProps = new ViewProps();
+    }
+    public void setExecutionState(ExecutionState es) {
+        this.es = es;
+    }
+
+    public ExecutionState getExecutionState() {
+        return es;
     }
 
     public ViewProps getViewProps() {
@@ -94,10 +101,6 @@ public class Node {
         return id;
     }
 
-    public NodeInfo getInfo() {
-        return info;
-    }
-
     public void setStartRound(int startRound) {
         this.startRound = startRound;
     }
@@ -116,16 +119,5 @@ public class Node {
 
     public void setRight(Node right) {
         this.right = right;
-    }
-
-    public void setInfo(NodeInfo info) {
-        this.info = info;
-    }
-
-    public void setMemory(NodeMemory memory) {
-        this.memory = memory;
-    }
-    public NodeMemory getMemory() {
-        return memory;
     }
 }

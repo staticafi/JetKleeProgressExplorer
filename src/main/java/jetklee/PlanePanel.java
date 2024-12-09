@@ -15,7 +15,7 @@ import static jetklee.Styles.*;
  * Panel that displays memory plane of selected object state.
  */
 public class PlanePanel extends JPanel {
-    private NodeMemory.Plane currentPlane;
+    private ExecutionState.Plane currentPlane;
     private boolean isColorful;
     private JCheckBox sortByOffsetCheckBox;
     private JPanel concretePanel;
@@ -46,12 +46,13 @@ public class PlanePanel extends JPanel {
         symbolicPanel = new JPanel(new BorderLayout());
         updatePanel = new JPanel(new BorderLayout());
 
-        JSplitPane bytesSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, concretePanel, symbolicPanel);
-        bytesSplitPane.setResizeWeight(0.5);
+//        JSplitPane bytesSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, concretePanel, symbolicPanel);
+//        bytesSplitPane.setResizeWeight(0.5);
 
         JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.addTab("Bytes", bytesSplitPane);
-        tabbedPane.addTab("Update", updatePanel);
+        tabbedPane.addTab("ConcreteBytes", concretePanel);
+        tabbedPane.addTab("SymbolicBytes", symbolicPanel);
+        tabbedPane.addTab("Updates", updatePanel);
 
         this.add(controlPanel, BorderLayout.NORTH);
         this.add(tabbedPane, BorderLayout.CENTER);
@@ -79,10 +80,10 @@ public class PlanePanel extends JPanel {
 
 
     private void updateBytesTable(JPanel bytePanel, String[] byteColumns, boolean isConcrete, boolean isColorFul) {
-        NodeMemory.ByteMap additions = new NodeMemory.ByteMap();
-        NodeMemory.ByteMap deletions = new NodeMemory.ByteMap();
-        NodeMemory.ByteMap maskAdditions = new NodeMemory.ByteMap();
-        NodeMemory.ByteMap maskDeletions = new NodeMemory.ByteMap();
+        ExecutionState.ByteMap additions = new ExecutionState.ByteMap();
+        ExecutionState.ByteMap deletions = new ExecutionState.ByteMap();
+        ExecutionState.ByteMap maskAdditions = new ExecutionState.ByteMap();
+        ExecutionState.ByteMap maskDeletions = new ExecutionState.ByteMap();
 
         if (currentPlane != null) {
             maskAdditions = currentPlane.concreteMask().additions();
@@ -164,7 +165,7 @@ public class PlanePanel extends JPanel {
         };
     }
 
-    private ArrayList<TableRow> getByteRows(NodeMemory.ByteMap changes, Color color, NodeMemory.ByteMap mask,
+    private ArrayList<TableRow> getByteRows(ExecutionState.ByteMap changes, Color color, ExecutionState.ByteMap mask,
                                             boolean isConcrete) {
         ArrayList<TableRow> byteRows = new ArrayList<>();
 
@@ -178,16 +179,16 @@ public class PlanePanel extends JPanel {
         return byteRows;
     }
 
-    private ArrayList<TableRow> getUpdateRows(NodeMemory.Updates updates, Color color) {
+    private ArrayList<TableRow> getUpdateRows(ExecutionState.Updates updates, Color color) {
         ArrayList<TableRow> updateRows = new ArrayList<>();
         for (Map.Entry<String, String> entry : updates) {
-            updateRows.add(new TableRow(color, entry.getKey(), entry.getValue(), null, true));
+            updateRows.add(new TableRow(color, entry.getValue(), entry.getKey(),null, true));
         }
         return updateRows;
     }
 
     private void updateUpdatesTable(boolean isColorful) {
-        NodeMemory.Updates updates = currentPlane == null ? new NodeMemory.Updates(): currentPlane.updates();
+        ExecutionState.Updates updates = currentPlane == null ? new ExecutionState.Updates(): currentPlane.updates();
 
         ArrayList<TableRow> updateRows = getUpdateRows(updates, isColorful ? ADDITIONS_COLOR : BACKGROUND_COLOR);
 
@@ -203,7 +204,7 @@ public class PlanePanel extends JPanel {
         updatePanel.repaint();
     }
 
-    public void updateTables(NodeMemory.Plane plane, boolean isColorful) {
+    public void updateTables(ExecutionState.Plane plane, boolean isColorful) {
         this.isColorful = isColorful;
         this.currentPlane = plane;
         updateBytesTable(concretePanel, CONCRETE_COLUMNS, true, isColorful);
@@ -211,7 +212,7 @@ public class PlanePanel extends JPanel {
         updateUpdatesTable(isColorful);
     }
 
-    private String findMask(int byteIndex, NodeMemory.ByteMap mask) {
+    private String findMask(int byteIndex, ExecutionState.ByteMap mask) {
         for (Map.Entry<String, ArrayList<Integer>> entry : mask.entrySet()) {
             if (entry.getValue().contains(byteIndex)) {
                 return entry.getKey();

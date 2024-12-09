@@ -152,7 +152,7 @@ public class Tree {
             return switch (actionStr) {
                 case "InsertNode" -> INSERT_NODE;
                 case "InsertEdge" -> INSERT_EDGE;
-                case "InsertMemory" -> INSERT_MEMORY;
+                case "InsertInfo" -> INSERT_MEMORY;
                 case "EraseNode" -> ERASE_NODE;
                 default -> throw new Exception("Unknown tree action: " + actionStr);
             };
@@ -170,14 +170,16 @@ public class Tree {
         }
         nodes.put(nodeID, node);
 
-        node.setInfo(new NodeInfo(actionJSON));
+        node.setExecutionState(new ExecutionState(actionJSON, nodeID));
     }
 
     private void insertMemory(JSONObject actionJSON) {
         int nodeID = actionJSON.getInt("nodeID");
 
         Node node = nodes.get(nodeID);
-        node.setMemory(new NodeMemory(actionJSON, nodeID));
+        ExecutionState es = node.getExecutionState();
+        es.setNodeInfoData(actionJSON);
+        node.setExecutionState(es);
     }
 
     private void insertEdge(JSONObject actionJSON) {

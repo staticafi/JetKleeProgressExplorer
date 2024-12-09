@@ -3,8 +3,7 @@ package jetklee;
 import java.awt.*;
 import java.util.List;
 
-import static jetklee.Styles.CODE_FONT;
-import static jetklee.Styles.CODE_FONT_SIZE;
+import static jetklee.Styles.*;
 
 /**
  * Displays source code.
@@ -51,7 +50,7 @@ public abstract class SourceViewerBase extends TextViewerBase {
     public void selectCodeLine(int line) {
         removeHighLight();
         setLine(line);
-        highlightLine(line);
+        highlightLine(line, ADDITIONS_COLOR);
     }
 
     public abstract List<String> getSourceCodeLines();
