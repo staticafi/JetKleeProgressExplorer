@@ -30,7 +30,7 @@ public class TreeViewer extends JPanel {
     private static final int NODE_SEPARATOR_VERTICAL = 200;
     private static final int NODE_WIDTH = 100;
     private static final int NODE_HEIGHT = 50;
-    private static final float EDGE_THICKNESS = 2.0f;
+    private static final float EDGE_THICKNESS = 2.3f;
 
     /**
      * Enables mouse dragging to navigate through the process tree displayed in the tree panel.
@@ -176,7 +176,12 @@ public class TreeViewer extends JPanel {
         if (tree.getRoot() != null) {
             Graphics2D g2d = (Graphics2D) g;
             g2d.setFont(font);
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            String os = System.getProperty("os.name").toLowerCase();
+            // antialiasing causes problems on Linux
+            if (os.contains("win")) {
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            }
             g2d.setStroke(new BasicStroke(EDGE_THICKNESS));
             drawSubTree(g2d, tree.getRoot(), getVisibleRect());
             if (selectedNode != null && isVisibleNode(selectedNode, selectedRound)) {

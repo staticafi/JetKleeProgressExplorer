@@ -141,11 +141,16 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
             public void run() {
                 double startTime = System.currentTimeMillis();
 
-                FlatLightLaf.setGlobalExtraDefaults(Collections.singletonMap("@accentColor", "#62c1e5"));
-                try {
-                    UIManager.setLookAndFeel(new FlatLightLaf());
-                } catch (Exception ex) {
-                    System.err.println("Failed to initialize LaF");
+                String os = System.getProperty("os.name").toLowerCase();
+
+                // LaF is causing problems on Linux
+                if (os.contains("win")) {
+                    FlatLightLaf.setGlobalExtraDefaults(Collections.singletonMap("@accentColor", "#62c1e5"));
+                    try {
+                        UIManager.setLookAndFeel(new FlatLightLaf());
+                    } catch (Exception ex) {
+                        System.err.println("Failed to initialize LaF");
+                    }
                 }
 
                 JFrame frame = new JFrame("JetKlee Progress Explorer");
@@ -284,6 +289,12 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
      * @param node the node for which information is displayed.
      */
     private void displayNodePane(Node node) {
+        // Display node pane only if node has execution state
+        // (if the execution was terminated early, the node may not have it)
+        if (node.getExecutionState().getMemory() == null) {
+            nodeTabbedPane.setVisible(false);
+            return;
+        }
         contextViewer.displayContext(node.getExecutionState().getContext());
         constraintsViewer.displayConstraints(node.getExecutionState().getConstraints());
         memoryViewer.setupAndDisplayMemory(node, sourceLL);

@@ -29,7 +29,7 @@ public class PlanePanel extends JPanel {
 
         isColorful = false;
 
-        sortByOffsetCheckBox = new JCheckBox("Sort by Offset");
+        sortByOffsetCheckBox = new JCheckBox("Sort by index");
         sortByOffsetCheckBox.setSelected(true);
         sortByOffsetCheckBox.addActionListener(new ActionListener() {
             // TODO showall
@@ -222,7 +222,7 @@ public class PlanePanel extends JPanel {
     }
 
     private void showPopup(String value) {
-        JFrame popup = new JFrame("Value");
+        JFrame popup = new JFrame("Expression");
         popup.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         popup.setSize(400, 300);
         popup.setResizable(true);

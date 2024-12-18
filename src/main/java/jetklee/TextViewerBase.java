@@ -1,22 +1,22 @@
 package jetklee;
 
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultHighlighter;
 import javax.swing.text.Highlighter;
 import java.awt.*;
 
-import static jetklee.Styles.ADDITIONS_COLOR;
-
 /**
  * General panel with text.
  */
 public abstract class TextViewerBase extends JPanel {
-    protected JTextArea textArea;
+    protected RSyntaxTextArea textArea;
     public TextViewerBase() {
         super(new BorderLayout());
 
-        textArea = new JTextArea();
+        textArea = new RSyntaxTextArea();
         textArea.setEditable(false);
         textArea.setText("");
 

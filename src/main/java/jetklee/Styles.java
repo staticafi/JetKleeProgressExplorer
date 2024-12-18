@@ -8,7 +8,7 @@ import java.awt.*;
 public class Styles {
     // html styles
     public static final String KEY_COLOR = "blue";
-    public static final String INFO_FONT_SIZE = "11px";
+    public static final String INFO_FONT_SIZE = "10px";
 
     public static final int CODE_FONT_SIZE = 14;
 

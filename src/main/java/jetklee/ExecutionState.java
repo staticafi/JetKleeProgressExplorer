@@ -58,12 +58,12 @@ public class ExecutionState {
     public record Location(String file, int line, int column, int assemblyLine) {
     }
 
-    public record Context(InsertContext insertContext, int parentID, int parentJSON, Location lastLocation, int depth,
-                          boolean coveredNew, boolean forkDisabled, int instsSinceCovNew, int steppedInstructions,
-                          ArrayList<Location> stack) {
+    public record Context(InsertContext insertContext, int parentID, int parentJSON, Location lastLocation,
+                          boolean coveredNew, boolean forkDisabled, int instsSinceCovNew, int steppedInstructions) {
     }
 
-    public record InsertContext(int nodeID, int stateID, boolean uniqueState, Location firstLocation, int nextStateID){}
+    public record InsertContext(int nodeID, int stateID, boolean uniqueState, Location firstLocation, int depth,
+                                ArrayList<Location> stack){}
 
     private Context context;
     private InsertContext insertContext;
@@ -80,15 +80,29 @@ public class ExecutionState {
         this.insertContext = parseContextInsert(treeData);
     }
 
-    public void setNodeInfoData(JSONObject nodeInfoData) {
+    public void setNodeInfoData(JSONObject nodeInfoData, int parentID) {
         this.memory = parseMemory(nodeInfoData);
         this.constraints = parseConstraints(nodeInfoData);
-        this.context = parseContext(nodeInfoData);
+        this.context = parseContext(nodeInfoData, parentID);
     }
 
-    private Context parseContext(JSONObject memoryData) {
+    private Context parseContext(JSONObject memoryData, int parentID) {
         Location lastLocation = parseLocation(memoryData, "lastLocation");
-        JSONArray stackJSON = memoryData.getJSONArray("stack");
+        return new Context(
+                insertContext,
+                parentID,
+                memoryData.getInt("parentIter"),
+                lastLocation,
+                memoryData.getInt("coveredNew") == 1,
+                memoryData.getInt("forkDisabled") == 1,
+                memoryData.getInt("instsSinceCovNew"),
+                memoryData.getInt("steppedInstructions")
+        );
+    }
+
+    private InsertContext parseContextInsert(JSONObject treeData) {
+        Location firstLocation = parseLocation(treeData, "firstLocation");
+        JSONArray stackJSON = treeData.getJSONArray("stack");
         ArrayList<Location> stack = new ArrayList<>();
         for (int i = 0; i < stackJSON.length(); i++) {
             JSONArray stackLocationJSON = stackJSON.getJSONArray(i);
@@ -101,29 +115,13 @@ public class ExecutionState {
             stack.add(stackLocation);
         }
 
-        return new Context(
-                insertContext,
-                memoryData.getInt("parentID"),
-                memoryData.getInt("parentJSON"),
-                lastLocation,
-                memoryData.getInt("depth"),
-                memoryData.getInt("coveredNew") == 1,
-                memoryData.getInt("forkDisabled") == 1,
-                memoryData.getInt("instsSinceCovNew"),
-                memoryData.getInt("steppedInstructions"),
-                stack
-        );
-    }
-
-    private InsertContext parseContextInsert(JSONObject treeData) {
-        Location firstLocation = parseLocation(treeData, "firstLocation");
-
         return new InsertContext(
                 treeData.getInt("nodeID"),
                 treeData.getInt("stateID"),
                 treeData.getInt("uniqueState") == 1,
                 firstLocation,
-                treeData.getInt("nextStateID")
+                treeData.getInt("depth"),
+                stack
         );
     }
 
@@ -180,8 +178,9 @@ public class ExecutionState {
                 );
             }
 
+            int objID = objectStateJSON.getInt("objID");
             ObjectState objectState = new ObjectState(
-                    objectStateJSON.getInt("objID"),
+                    objID,
                     type,
                     objectStateJSON.getInt("segment"),
                     objectStateJSON.getString("name"),
@@ -193,8 +192,8 @@ public class ExecutionState {
                     objectStateJSON.getInt("copyOnWriteOwner"),
                     objectStateJSON.getInt("readOnly") == 1,
                     allocSite,
-                    parsePlane(objectStateJSON, Plane.PlaneType.SEGMENT),
-                    parsePlane(objectStateJSON, Plane.PlaneType.OFFSET)
+                    parsePlane(objectStateJSON, Plane.PlaneType.SEGMENT, objID),
+                    parsePlane(objectStateJSON, Plane.PlaneType.OFFSET, objID)
             );
             objectStates.add(objectState);
         }
@@ -234,7 +233,7 @@ public class ExecutionState {
         return new Diff(additions, deletions);
     }
 
-    private Plane parsePlane(JSONObject data, Plane.PlaneType type) {
+    private Plane parsePlane(JSONObject data, Plane.PlaneType type, int objID) {
         JSONObject planeJSON = data.getJSONObject(Plane.PlaneType.toString(type));
         if (planeJSON.isEmpty()) return null;
 
@@ -271,7 +270,7 @@ public class ExecutionState {
 
         return new Plane(
                 type,
-                planeJSON.getInt("objID"),
+                objID,
                 planeJSON.getString("rootObject"),
                 planeJSON.getInt("sizeBound"),
                 planeJSON.getInt("initialized") == 1,

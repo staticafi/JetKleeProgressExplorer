@@ -104,6 +104,13 @@ public class ObjectInfoViewer {
         objectInfoPanel.add(scrollPane, BorderLayout.CENTER);
         objectInfoPanel.revalidate();
         objectInfoPanel.repaint();
+
+        SwingUtilities.invokeLater(() -> {
+            JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
+            if (verticalScrollBar != null) {
+                verticalScrollBar.setValue(verticalScrollBar.getMinimum());
+            }
+        });
     }
 
     private static String formatAllocSiteAsList(ExecutionState.AllocSite allocSite, String functionLine) {

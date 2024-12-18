@@ -60,6 +60,7 @@ public class Node {
         id = id_;
         endRound = 0;
 
+        es = null;
         parent = null;
         left = null;
         right = null;

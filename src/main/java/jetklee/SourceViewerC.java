@@ -6,6 +6,8 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import org.fife.ui.rsyntaxtextarea.*;
+import org.fife.ui.rtextarea.RTextScrollPane;
 
 import static jetklee.Styles.CODE_FONT;
 import static jetklee.Styles.CODE_FONT_SIZE;
@@ -24,6 +26,7 @@ public class SourceViewerC extends SourceViewerBase {
      */
     public SourceViewerC(SourceLoader sourceLoader) {
         super();
+        textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_C);
         this.sourceLoader = sourceLoader;
         lineColumnLabel = new JLabel("Ln 1, Col 1");
         lineColumnLabel.setOpaque(true);

@@ -1,6 +1,8 @@
 package jetklee;
 
+import java.awt.*;
 import java.util.List;
+import org.fife.ui.rsyntaxtextarea.*;
 
 /**
  * Displays LL source code.
@@ -11,6 +13,7 @@ public class SourceViewerLL extends SourceViewerBase {
     public SourceViewerLL(SourceLoader sourceLoader) {
         super();
         this.sourceLoader = sourceLoader;
+        textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_ASSEMBLER_X86);
     }
 
     @Override

@@ -17,7 +17,7 @@ public class Tree {
     private HashMap<Integer, Node> nodes;
     private List<String> rounds;
     private static final String TREE_DIR = "Tree";
-    private static final String MEMORY_DIR = "Memory";
+    private static final String MEMORY_DIR = "States";
 
     public Tree() {
         roundCounter = 0;
@@ -103,12 +103,23 @@ public class Tree {
                     .forEach(file -> {
                         try {
                             System.out.println("Loading Memory file: " + file.getFileName().toString());
-                            loadMemoryFile(file);
+                            if (Files.size(file) != 0) {
+                                loadMemoryFile(file);
+                            }
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
                     });
+
         }
+
+        // set endRound for nodes without EraseNode action
+        for (Node node : nodes.values()) {
+            if (node.getEndRound() == 0) {
+                node.setEndRound(roundCounter);
+            }
+        }
+
     }
 
     /**
@@ -177,14 +188,16 @@ public class Tree {
         int nodeID = actionJSON.getInt("nodeID");
 
         Node node = nodes.get(nodeID);
+        int parentID = node.getParent() != null ? node.getParent().getId() : -1;
+
         ExecutionState es = node.getExecutionState();
-        es.setNodeInfoData(actionJSON);
+        es.setNodeInfoData(actionJSON, parentID);
         node.setExecutionState(es);
     }
 
     private void insertEdge(JSONObject actionJSON) {
         int parentID = actionJSON.getInt("parentID");
-        int childID = actionJSON.getInt("childID");
+        int childID = actionJSON.getInt("nodeID");
 
         Node parent = nodes.get(parentID);
         Node child = nodes.get(childID);

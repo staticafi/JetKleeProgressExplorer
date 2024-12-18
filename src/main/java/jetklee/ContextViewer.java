@@ -2,6 +2,8 @@ package jetklee;
 
 import javax.swing.*;
 
+import java.util.ArrayList;
+
 import static jetklee.HtmlFormatter.appendKeyValueInlineNonBold;
 import static jetklee.Styles.*;
 
@@ -20,12 +22,17 @@ public class ContextViewer extends TextViewerBase {
      * @param info to display.
      */
     public void displayContext(ExecutionState.Context context) {
-        String html = "<html><body style='font-family:" + INFO_FONT + "; font-size:" + INFO_FONT_SIZE + ";padding:5px;'>" +
+        if (context == null) {
+            displayInEditorPane("");
+            return;
+        }
+        String html = "<html><body style='font-family:" + INFO_FONT + "; font-size:" + INFO_FONT_SIZE +
+                ";padding:5px;'>" +
                 createNodeInfoRow(context) +
                 createStateInfoRow(context) +
                 createLocationRow("firstLocation", context.insertContext().firstLocation()) +
                 createLocationRow("lastLocation", context.lastLocation()) +
-                createStackRow(context) +
+                createStackRow(context.insertContext().stack()) +
                 "</body></html>";
 
         displayInEditorPane(html);
@@ -37,8 +44,7 @@ public class ContextViewer extends TextViewerBase {
 
         appendKeyValueInlineNonBold(row, "stateId", context.insertContext().stateID());
         appendKeyValueInlineNonBold(row, "parentId", context.parentID());
-        appendKeyValueInlineNonBold(row, "nextId", context.insertContext().nextStateID());
-        appendKeyValueInlineNonBold(row, "depth", context.depth());
+        appendKeyValueInlineNonBold(row, "depth", context.insertContext().depth());
         row.append("<br>");
         return row.toString();
     }
@@ -63,15 +69,16 @@ public class ContextViewer extends TextViewerBase {
                 "</div><br>";
     }
 
-    private String createStackRow(ExecutionState.Context context) {
+    private String createStackRow(ArrayList<ExecutionState.Location> stack) {
         StringBuilder stackBuilder = new StringBuilder();
         stackBuilder.append("<div><b><span style='color:").append(KEY_COLOR).append(";'>stack:</span></b><br>");
 
-        for (ExecutionState.Location stackLocation : context.stack()) {
+        for (ExecutionState.Location stackLocation : stack) {
             stackBuilder.append("&nbsp;&nbsp;- <span style='color:").append(KEY_COLOR).append(";'>file:</span> ")
                     .append(stackLocation.file())
                     .append(" <span style='color:").append(KEY_COLOR).append(";'>line:</span> ").append(stackLocation.line())
                     .append(" <span style='color:").append(KEY_COLOR).append(";'>column:</span> ").append(stackLocation.column())
+                    .append(" <span style='color:").append(KEY_COLOR).append(";'>assemblyLine:</span> ").append(stackLocation.assemblyLine())
                     .append("<br>");
         }
         stackBuilder.append("</div>");
@@ -84,5 +91,6 @@ public class ContextViewer extends TextViewerBase {
         this.removeAll();
         this.add(new JScrollPane(editorPane));
         this.revalidate();
+        this.repaint();
     }
 }
