@@ -176,9 +176,9 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
                 frame.setVisible(true);
                 frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
 
-                double totalTime = (System.currentTimeMillis() - startTime) / 1000.0f;
-                String formattedTime = String.format("%.2f", totalTime);
-                System.out.println(formattedTime);
+//                double totalTime = (System.currentTimeMillis() - startTime) / 1000.0f;
+//                String formattedTime = String.format("%.2f", totalTime);
+//                System.out.println(formattedTime);
             }
         });
     }

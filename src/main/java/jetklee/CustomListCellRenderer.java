@@ -13,9 +13,6 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
 
     private boolean showAll;
 
-    private static final Color RED_COLOR = new Color(255, 0, 0, 125);
-    private static final Color GREEN_COLOR = new Color(34, 139, 34, 125);
-
     public CustomListCellRenderer(List<ExecutionState.ObjectState> objects, List<ExecutionState.Deletion> deletions, boolean showAll) {
         this.objects = objects;
         this.deletions = deletions;
@@ -32,7 +29,7 @@ public class CustomListCellRenderer extends DefaultListCellRenderer {
         ExecutionState.Deletion deletionState = getDeletionById(objID);
 
         if (deletionState != null) {
-            label.setBackground(RED_COLOR);
+            label.setBackground(DELETIONS_COLOR);
         } else if (objectState != null) {
             switch (objectState.type()) {
                 case ADDITION:

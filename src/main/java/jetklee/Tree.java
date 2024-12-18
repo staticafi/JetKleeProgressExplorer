@@ -47,7 +47,7 @@ public class Tree {
                     .sorted(Comparator.comparingInt(this::pathToInt))
                     .forEach(file -> {
                         try {
-                            System.out.println("Loading Tree file: " + file.getFileName().toString());
+//                            System.out.println("Loading Tree file: " + file.getFileName().toString());
                             loadTreeFile(file);
                         } catch (Exception e) {
                             throw new RuntimeException(e);
@@ -70,7 +70,7 @@ public class Tree {
         try {
             fileContent = new String(Files.readAllBytes(filePath));
         } catch (IOException e) {
-            System.out.println("Unable to read file: " + filePath);
+//            System.out.println("Unable to read file: " + filePath);
             return;
         }
         JSONArray actions = new JSONArray(fileContent);
@@ -102,7 +102,7 @@ public class Tree {
 
                     .forEach(file -> {
                         try {
-                            System.out.println("Loading Memory file: " + file.getFileName().toString());
+//                            System.out.println("Loading Memory file: " + file.getFileName().toString());
                             if (Files.size(file) != 0) {
                                 loadMemoryFile(file);
                             }
@@ -134,7 +134,7 @@ public class Tree {
         try {
             fileContent = new String(Files.readAllBytes(filePath));
         } catch (IOException e) {
-            System.out.println("Unable to read file: " + filePath);
+//            System.out.println("Unable to read file: " + filePath);
             return;
         }
         JSONObject actionJSON = new JSONObject(fileContent);
