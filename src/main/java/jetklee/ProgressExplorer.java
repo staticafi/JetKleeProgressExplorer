@@ -139,8 +139,6 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
              * optional command line argument.
              */
             public void run() {
-                double startTime = System.currentTimeMillis();
-
                 String os = System.getProperty("os.name").toLowerCase();
 
                 // LaF is causing problems on Linux
@@ -175,10 +173,6 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
                 frame.pack();
                 frame.setVisible(true);
                 frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
-
-//                double totalTime = (System.currentTimeMillis() - startTime) / 1000.0f;
-//                String formattedTime = String.format("%.2f", totalTime);
-//                System.out.println(formattedTime);
             }
         });
     }
@@ -215,7 +209,6 @@ public class ProgressExplorer implements ListSelectionListener, MouseWheelListen
 
         private static NodeAction parse(String actionStr) throws Exception {
             return switch (actionStr) {
-//                case "Node Information" -> NODE_INFO;
                 case "C" -> NODE_TO_C;
                 case "LL" -> NODE_TO_LL;
                 default -> throw new Exception("Unknown right click menu action: " + actionStr);
