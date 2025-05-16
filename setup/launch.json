@@ -1,0 +1,21 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "JetKleeProgressExplorer",
+            "request": "launch",
+            "mainClass": "jetklee.ProgressExplorer",
+            "projectName": "jetklee_progress_explorer",
+            "stopOnEntry": false,
+            "vmArgs": "-Xss100m -Xms512m -Xmx10000m -Dsun.awt.disablegrab=true",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                //"../JetKlee/output/progress_recording",
+            ]
+        }
+    ]
+}
